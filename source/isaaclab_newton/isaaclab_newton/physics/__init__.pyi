@@ -6,6 +6,7 @@
 __all__ = [
     "NewtonFeatherstoneManager",
     "FeatherstoneSolverCfg",
+    "HydroelasticCfg",
     "HydroelasticSDFCfg",
     "NewtonKaminoManager",
     "KaminoSolverCfg",
@@ -17,6 +18,7 @@ __all__ = [
     "NewtonShapeCfg",
     "NewtonSolverCfg",
     "NewtonXPBDManager",
+    "SDFCfg",
     "XPBDSolverCfg",
 ]
 
@@ -29,9 +31,11 @@ from .mjwarp_manager_cfg import MJWarpSolverCfg
 from .newton_collision_cfg import HydroelasticSDFCfg, NewtonCollisionPipelineCfg
 from .newton_manager import NewtonManager
 from .newton_manager_cfg import (
+    HydroelasticCfg,
     NewtonCfg,
     NewtonShapeCfg,
     NewtonSolverCfg,
+    SDFCfg,
 )
 from .xpbd_manager import NewtonXPBDManager
 from .xpbd_manager_cfg import XPBDSolverCfg
