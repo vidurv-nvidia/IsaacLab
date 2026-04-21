@@ -4,3 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """Newton-native MDP action terms for IsaacLab manager-based envs."""
+
+from .newton_ik_actions_cfg import NewtonInverseKinematicsActionCfg
+
+__all__ = ["NewtonInverseKinematicsActionCfg"]

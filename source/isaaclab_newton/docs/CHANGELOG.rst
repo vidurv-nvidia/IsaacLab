@@ -13,6 +13,8 @@ Added
   constructing a single-arm Newton model from an IsaacLab asset cfg.
 * Added :class:`~isaaclab_newton.controllers.NewtonIKControllerCfg`
   configuration dataclass for the Newton inverse-kinematics controller.
+* Added :class:`~isaaclab_newton.envs.mdp.actions.NewtonInverseKinematicsActionCfg`
+  configuration dataclass for the Newton IK action term.
 
 
 0.5.10 (2026-04-02)
