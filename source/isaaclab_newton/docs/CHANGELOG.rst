@@ -8,6 +8,9 @@ Added
 ^^^^^
 
 * Initial scaffolding for Newton inverse-kinematics integration.
+* Added :class:`~isaaclab_newton.controllers.IKModelInfo` and
+  :func:`~isaaclab_newton.controllers.build_single_arm_ik_model` for
+  constructing a single-arm Newton model from an IsaacLab asset cfg.
 
 
 0.5.10 (2026-04-02)
