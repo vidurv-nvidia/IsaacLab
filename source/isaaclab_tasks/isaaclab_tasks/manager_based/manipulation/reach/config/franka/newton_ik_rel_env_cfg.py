@@ -54,15 +54,15 @@ class FrankaNewtonIKReachEnvCfg(joint_pos_env_cfg.FrankaReachEnvCfg):
         # Newton IK action term.
         # NOTE: ``scale=0.5`` matches the PhysX ``DifferentialInverseKinematicsActionCfg``
         # baseline so the PPO input distribution is identical across backends.
-        # IK-specific knobs (``iterations``, ``joint_limit_weight``) have no PhysX
-        # equivalent and are tuned for Newton's optimization-based solver:
-        #   - ``iterations=16``: the LM solver needs more iterations per step to
-        #     drive EE error down when targets are far from current pose; the
-        #     default 8 was conservative.
+        #
+        # IK-specific knobs (no PhysX equivalent, tuned for Newton's
+        # optimization-based solver in a per-control-step RL setting):
+        #   - ``iterations=1``: a single Gauss-Newton (LM) step per control step,
+        #     approximating the single-step behavior of PhysX DLS.
         #   - ``joint_limit_weight=0.02``: the default 0.1 competes too hard with
-        #     position/rotation objectives inside the reach workspace, plateauing
-        #     position error around 0.27 m. 0.02 still guards against limits
-        #     without dominating.
+        #     position/rotation objectives inside the reach workspace.
+        #   - ``lambda_initial=1.0``: higher damping shrinks per-step joint
+        #     commands toward what the PD can track in one 33 ms control window.
         self.actions.arm_action = NewtonInverseKinematicsActionCfg(
             asset_name="robot",
             joint_names=["panda_joint.*"],
@@ -70,8 +70,9 @@ class FrankaNewtonIKReachEnvCfg(joint_pos_env_cfg.FrankaReachEnvCfg):
             controller=NewtonIKControllerCfg(
                 command_type="pose",
                 use_relative_mode=True,
-                iterations=16,
+                iterations=1,
                 joint_limit_weight=0.02,
+                lambda_initial=1.0,
             ),
             scale=0.5,
             body_offset=NewtonInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.107]),
