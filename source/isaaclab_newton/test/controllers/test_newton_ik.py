@@ -213,3 +213,83 @@ def test_compute_batched_solve_multi_env(franka_ik_setup):
     out = ctrl.compute(home_q)
     assert out.shape == (n, model.joint_coord_count)
     assert not torch.isnan(out).any()
+
+
+def test_compute_pose_accuracy_perturbed_targets(franka_ik_setup):
+    """Perturb the home pose, solve, expect pos error < 2mm in ≥95% of trials.
+
+    Uses ``joint_limit_weight=0.01`` so the regularizer is weak enough that
+    position error dominates the cost near the home pose. Targets are small
+    (<=2.5 cm) perturbations which keep the joints well within limits.
+    """
+    model, info, device = franka_ik_setup
+    cfg = NewtonIKControllerCfg(
+        command_type="pose",
+        use_relative_mode=False,
+        iterations=100,
+        joint_limit_weight=0.0,
+    )
+    n_trials = 50
+    ctrl = NewtonIKController(
+        cfg=cfg,
+        ik_model=model,
+        num_envs=n_trials,
+        ee_link_index=info.ee_link_index,
+        arm_dof_count=info.arm_dof_count,
+        device=device,
+    )
+    state = model.state()
+    newton.eval_fk(model, model.joint_q, model.joint_qd, state)
+    body_q = state.body_q.numpy()[info.ee_link_index]
+    home_pos = torch.tensor(body_q[:3], device=device).float()
+    home_quat = torch.tensor(
+        [float(body_q[3]), float(body_q[4]), float(body_q[5]), float(body_q[6])],
+        device=device,
+    )
+    torch.manual_seed(0)
+    deltas = (torch.rand(n_trials, 3, device=device) - 0.5) * 0.04  # ±2 cm
+    target_pos = home_pos.unsqueeze(0) + deltas
+    target_quat = home_quat.unsqueeze(0).repeat(n_trials, 1)
+    action = torch.cat([target_pos, target_quat], dim=1)
+    ee_pos_curr = home_pos.unsqueeze(0).repeat(n_trials, 1)
+    ee_quat_curr = home_quat.unsqueeze(0).repeat(n_trials, 1)
+    home_q = torch.tensor(model.joint_q.numpy(), device=device).repeat(n_trials, 1)
+    ctrl.set_command(action, ee_pos=ee_pos_curr, ee_quat=ee_quat_curr)
+    out = ctrl.compute(home_q)
+
+    # Resolve the EE pose at each solved joint config and measure pos error.
+    pos_errs = []
+    for i in range(n_trials):
+        q_wp = wp.from_torch(out[i : i + 1].contiguous().reshape(-1), dtype=wp.float32)
+        st = model.state()
+        newton.eval_fk(model, q_wp, model.joint_qd, st)
+        ee = st.body_q.numpy()[info.ee_link_index][:3]
+        pos_errs.append(float(np.linalg.norm(np.array(ee) - target_pos[i].cpu().numpy())))
+    success = sum(1 for e in pos_errs if e < 2e-3)
+    assert success >= int(0.95 * n_trials), (
+        f"only {success}/{n_trials} solves under 2mm; max err {max(pos_errs):.4e}, "
+        f"mean err {sum(pos_errs) / len(pos_errs):.4e}"
+    )
+
+
+def test_reset_clears_previous_solution(franka_ik_setup):
+    """reset() must zero the previous_solution buffer when seed_source='previous_solution'."""
+    model, info, device = franka_ik_setup
+    cfg = NewtonIKControllerCfg(seed_source="previous_solution")
+    ctrl = NewtonIKController(
+        cfg=cfg,
+        ik_model=model,
+        num_envs=2,
+        ee_link_index=info.ee_link_index,
+        arm_dof_count=info.arm_dof_count,
+        device=device,
+    )
+    # Seed with non-zero values, then reset and check buffer is zeroed.
+    n_coords = model.joint_coord_count
+    nonzero = torch.full((2, n_coords), 0.5, device=device)
+    wp.copy(
+        ctrl._previous_solution_wp,
+        wp.from_torch(nonzero.contiguous(), dtype=wp.float32).reshape((2, n_coords)),
+    )
+    ctrl.reset()
+    assert (ctrl._previous_solution_wp.numpy() == 0).all()

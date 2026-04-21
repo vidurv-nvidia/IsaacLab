@@ -228,3 +228,16 @@ class NewtonIKController:
             wp.copy(self._previous_solution_wp, self._joint_q_out_wp)
 
         return wp.to_torch(self._joint_q_out_wp)
+
+    def reset(self, env_ids: torch.Tensor | None = None) -> None:
+        """Reset internal solver/seed state.
+
+        Args:
+            env_ids: Currently unused (the underlying Newton IK solver has no
+                per-env state worth preserving across resets). Present for
+                parity with the IsaacLab :class:`ActionTerm` reset signature.
+        """
+        del env_ids  # unused for now
+        self._solver.reset()
+        if self._previous_solution_wp is not None:
+            self._previous_solution_wp.zero_()
