@@ -52,6 +52,17 @@ class FrankaNewtonIKReachEnvCfg(joint_pos_env_cfg.FrankaReachEnvCfg):
         self.scene.robot = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
         # Newton IK action term.
+        # NOTE: ``scale=0.5`` matches the PhysX ``DifferentialInverseKinematicsActionCfg``
+        # baseline so the PPO input distribution is identical across backends.
+        # IK-specific knobs (``iterations``, ``joint_limit_weight``) have no PhysX
+        # equivalent and are tuned for Newton's optimization-based solver:
+        #   - ``iterations=16``: the LM solver needs more iterations per step to
+        #     drive EE error down when targets are far from current pose; the
+        #     default 8 was conservative.
+        #   - ``joint_limit_weight=0.02``: the default 0.1 competes too hard with
+        #     position/rotation objectives inside the reach workspace, plateauing
+        #     position error around 0.27 m. 0.02 still guards against limits
+        #     without dominating.
         self.actions.arm_action = NewtonInverseKinematicsActionCfg(
             asset_name="robot",
             joint_names=["panda_joint.*"],
@@ -59,8 +70,10 @@ class FrankaNewtonIKReachEnvCfg(joint_pos_env_cfg.FrankaReachEnvCfg):
             controller=NewtonIKControllerCfg(
                 command_type="pose",
                 use_relative_mode=True,
-                iterations=8,
+                iterations=16,
+                joint_limit_weight=0.02,
             ),
+            scale=0.5,
             body_offset=NewtonInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.107]),
         )
 
