@@ -17,6 +17,9 @@ Added
   with batched IK solver construction across all envs.
 * Added :class:`~isaaclab_newton.envs.mdp.actions.NewtonInverseKinematicsActionCfg`
   configuration dataclass for the Newton IK action term.
+* Added :class:`~isaaclab_newton.envs.mdp.actions.NewtonInverseKinematicsAction`
+  action term that drives Newton's batched IK across all envs in one fused
+  pass per env step.
 
 
 0.5.10 (2026-04-02)

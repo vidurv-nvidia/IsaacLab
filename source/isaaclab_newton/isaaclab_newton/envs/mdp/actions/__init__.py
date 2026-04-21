@@ -5,6 +5,7 @@
 
 """Newton-native MDP action terms for IsaacLab manager-based envs."""
 
+from .newton_ik_actions import NewtonInverseKinematicsAction
 from .newton_ik_actions_cfg import NewtonInverseKinematicsActionCfg
 
-__all__ = ["NewtonInverseKinematicsActionCfg"]
+__all__ = ["NewtonInverseKinematicsAction", "NewtonInverseKinematicsActionCfg"]
