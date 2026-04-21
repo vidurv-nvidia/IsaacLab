@@ -16,11 +16,11 @@ Play command::
         --task Isaac-Reach-Franka-Newton-IK-Rel-Play-v0
 """
 
-from isaaclab.utils import configclass
-
 from isaaclab_newton.controllers import NewtonIKControllerCfg
 from isaaclab_newton.envs.mdp.actions import NewtonInverseKinematicsActionCfg
 from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg
+
+from isaaclab.utils import configclass
 
 from . import joint_pos_env_cfg
 

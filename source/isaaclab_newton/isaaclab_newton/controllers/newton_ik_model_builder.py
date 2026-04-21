@@ -24,6 +24,7 @@ from newton import ModelBuilder
 from pxr import Usd
 
 from isaaclab.assets import ArticulationCfg
+from isaaclab.utils.assets import retrieve_file_path
 
 
 @dataclass
@@ -109,7 +110,7 @@ def build_single_arm_ik_model(
             resolved from the loaded model.
         ValueError: If the loaded USD does not produce any articulations.
     """
-    usd_path = asset_cfg.spawn.usd_path
+    usd_path = retrieve_file_path(asset_cfg.spawn.usd_path)
     builder = ModelBuilder()
     stage = Usd.Stage.Open(usd_path)
     # Force fixed base at world origin so world-frame targets equal base-frame targets.
