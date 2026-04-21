@@ -57,17 +57,18 @@ class FrankaNewtonIKReachEnvCfg(joint_pos_env_cfg.FrankaReachEnvCfg):
         #
         # IK-specific knobs (no PhysX equivalent, tuned for Newton's
         # optimization-based solver in a per-control-step RL setting):
-        #   - ``iterations=1``: a single Gauss-Newton (LM) step per control step,
-        #     approximating the single-step behavior of PhysX DLS.
+        #   - ``iterations=2``: two Gauss-Newton (LM) steps per control step.
+        #     One step matches PhysX DLS per-step behavior but under-serves
+        #     rotation once position converges; a second polish step lets LM
+        #     balance both objectives in the same control window.
         #   - ``lambda_initial=1.0``: higher damping shrinks per-step joint
         #     commands toward what the PD can track in one 33 ms control window.
         #   - ``joint_limit_weight=0.02``: the default 0.1 competes too hard with
         #     position/rotation objectives inside the reach workspace.
-        #   - ``rotation_weight=60`` balances against ``position_weight=100`` (the
-        #     cfg default): 1 cm of position error and 1° (~0.017 rad) of
-        #     rotation error then contribute equally to the LM cost. Without
-        #     this, position dominates and rotation tracking regresses
-        #     (observed ~27° tail vs PhysX's 9°).
+        #   - ``rotation_weight=100.0`` equals ``position_weight=100`` (default):
+        #     rotation and position then contribute equally to the LM cost,
+        #     preventing the orientation regression observed when rotation is
+        #     under-weighted.
         self.actions.arm_action = NewtonInverseKinematicsActionCfg(
             asset_name="robot",
             joint_names=["panda_joint.*"],
@@ -75,10 +76,10 @@ class FrankaNewtonIKReachEnvCfg(joint_pos_env_cfg.FrankaReachEnvCfg):
             controller=NewtonIKControllerCfg(
                 command_type="pose",
                 use_relative_mode=True,
-                iterations=1,
+                iterations=2,
                 joint_limit_weight=0.02,
                 lambda_initial=1.0,
-                rotation_weight=60.0,
+                rotation_weight=100.0,
             ),
             scale=0.5,
             body_offset=NewtonInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.107]),
