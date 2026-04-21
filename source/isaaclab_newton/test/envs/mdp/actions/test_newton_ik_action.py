@@ -25,4 +25,5 @@ def test_action_class_is_exported():
 def test_action_module_path():
     """The module containing the action class must exist."""
     import isaaclab_newton.envs.mdp.actions.newton_ik_actions as mod
+
     assert hasattr(mod, "NewtonInverseKinematicsAction")

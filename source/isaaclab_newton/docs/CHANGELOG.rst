@@ -20,6 +20,8 @@ Added
 * Added :class:`~isaaclab_newton.envs.mdp.actions.NewtonInverseKinematicsAction`
   action term that drives Newton's batched IK across all envs in one fused
   pass per env step.
+* Added :meth:`~isaaclab_newton.controllers.NewtonIKController.compute`
+  for batched IK solving across all envs in one fused pass.
 
 
 0.5.10 (2026-04-02)

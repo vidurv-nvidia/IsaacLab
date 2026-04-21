@@ -40,19 +40,17 @@ class NewtonInverseKinematicsAction(ActionTerm):
     :meth:`Articulation.set_joint_position_target_index`.
     """
 
-    cfg: "NewtonInverseKinematicsActionCfg"
+    cfg: NewtonInverseKinematicsActionCfg
     _asset: Articulation
 
-    def __init__(self, cfg: "NewtonInverseKinematicsActionCfg", env: "ManagerBasedEnv") -> None:
+    def __init__(self, cfg: NewtonInverseKinematicsActionCfg, env: ManagerBasedEnv) -> None:
         super().__init__(cfg, env)
 
         # Resolve joint and body indices on the sim asset.
         self._joint_ids, self._joint_names = self._asset.find_joints(self.cfg.joint_names)
         body_ids, body_names = self._asset.find_bodies(self.cfg.body_name)
         if len(body_ids) != 1:
-            raise ValueError(
-                f"Expected exactly 1 body matching '{self.cfg.body_name}', got {body_names}"
-            )
+            raise ValueError(f"Expected exactly 1 body matching '{self.cfg.body_name}', got {body_names}")
         self._body_idx = body_ids[0]
 
         # Build a single-arm IK Newton model (and validate topology match).
@@ -154,9 +152,7 @@ class NewtonInverseKinematicsAction(ActionTerm):
         ee_quat_w = wp.to_torch(self._asset.data.body_quat_w)[:, self._body_idx]
         root_pos_w = wp.to_torch(self._asset.data.root_pos_w)
         root_quat_w = wp.to_torch(self._asset.data.root_quat_w)
-        ee_pos_b, ee_quat_b = math_utils.subtract_frame_transforms(
-            root_pos_w, root_quat_w, ee_pos_w, ee_quat_w
-        )
+        ee_pos_b, ee_quat_b = math_utils.subtract_frame_transforms(root_pos_w, root_quat_w, ee_pos_w, ee_quat_w)
         if self._offset_pos is not None:
             ee_pos_b, ee_quat_b = math_utils.combine_frame_transforms(
                 ee_pos_b, ee_quat_b, self._offset_pos, self._offset_rot

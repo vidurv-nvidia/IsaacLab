@@ -180,3 +180,51 @@ class NewtonIKController:
         """Copy a torch ``(N, 4)`` quaternion tensor into the Warp target_rotations buffer."""
         target_quat_wp = wp.from_torch(target_quat.contiguous(), dtype=wp.vec4)
         wp.copy(self._target_rot_wp, target_quat_wp)
+
+    def compute(self, joint_q_in: torch.Tensor) -> torch.Tensor:
+        """Solve IK for all envs in one batched pass.
+
+        Args:
+            joint_q_in: Current joint positions [m or rad] for the full IK
+                model, shape ``[num_envs, joint_coord_count]``. The caller
+                (typically the action term) is responsible for providing
+                complete joint coords — including non-arm joints such as
+                gripper fingers, which the solver leaves unchanged because
+                they have zero position/rotation Jacobian contribution.
+
+        Returns:
+            Target joint positions [m or rad], shape
+            ``[num_envs, joint_coord_count]``.
+        """
+        if joint_q_in.shape != (self.num_envs, self._n_coords):
+            raise ValueError(
+                f"joint_q_in shape {tuple(joint_q_in.shape)} does not match "
+                f"(num_envs={self.num_envs}, joint_coord_count={self._n_coords})"
+            )
+
+        if self.cfg.seed_source == "sim_joint_pos":
+            seed_wp = wp.from_torch(joint_q_in.contiguous(), dtype=wp.float32).reshape((self.num_envs, self._n_coords))
+            wp.copy(self._joint_q_in_wp, seed_wp)
+        elif self.cfg.seed_source == "previous_solution":
+            assert self._previous_solution_wp is not None
+            wp.copy(self._joint_q_in_wp, self._previous_solution_wp)
+        elif self.cfg.seed_source == "default_pose":
+            default_q = self.model.joint_q.numpy()  # full n_coords
+            tile = torch.tensor(default_q, device=joint_q_in.device).repeat(self.num_envs, 1)
+            wp.copy(
+                self._joint_q_in_wp,
+                wp.from_torch(tile.contiguous(), dtype=wp.float32).reshape((self.num_envs, self._n_coords)),
+            )
+        else:
+            raise ValueError(f"unknown seed_source: {self.cfg.seed_source}")
+
+        self._solver.step(
+            self._joint_q_in_wp,
+            self._joint_q_out_wp,
+            iterations=self.cfg.iterations,
+        )
+
+        if self._previous_solution_wp is not None:
+            wp.copy(self._previous_solution_wp, self._joint_q_out_wp)
+
+        return wp.to_torch(self._joint_q_out_wp)
