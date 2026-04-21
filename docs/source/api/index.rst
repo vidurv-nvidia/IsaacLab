@@ -152,6 +152,7 @@ The following modules are available in the ``isaaclab_newton`` extension:
 
    assets
    cloner
+   controllers
    physics
    renderers
    scene_data_providers
@@ -162,6 +163,7 @@ The following modules are available in the ``isaaclab_newton`` extension:
 
    lab_newton/isaaclab_newton.assets
    lab_newton/isaaclab_newton.cloner
+   lab_newton/isaaclab_newton.controllers
    lab_newton/isaaclab_newton.physics
    lab_newton/isaaclab_newton.renderers
    lab_newton/isaaclab_newton.scene_data_providers
