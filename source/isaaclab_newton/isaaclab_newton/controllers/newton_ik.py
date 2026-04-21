@@ -10,6 +10,7 @@ from __future__ import annotations
 import newton
 import newton.ik as ik
 import numpy as np
+import torch
 import warp as wp
 
 from .newton_ik_cfg import NewtonIKControllerCfg
@@ -130,3 +131,52 @@ class NewtonIKController:
         ``joint_coord_count`` of the IK model.
         """
         return self._arm_dof_count
+
+    def set_command(
+        self,
+        command: torch.Tensor,
+        ee_pos: torch.Tensor | None = None,
+        ee_quat: torch.Tensor | None = None,
+    ) -> None:
+        """Set the EE pose target(s) for the next :meth:`compute` call.
+
+        Args:
+            command: Target command tensor, shape ``[num_envs, action_dim]``.
+                Interpretation depends on :attr:`cfg.command_type` and
+                :attr:`cfg.use_relative_mode`. For ``pose`` + relative this is
+                ``(dx, dy, dz, drx, dry, drz)``.
+            ee_pos: Current EE position [m], shape ``[num_envs, 3]``. Required
+                for any relative mode.
+            ee_quat: Current EE orientation ``(x, y, z, w)``, shape
+                ``[num_envs, 4]``. Required for any pose mode with relative.
+        """
+        from isaaclab.utils.math import apply_delta_pose
+
+        if self.cfg.command_type == "pose":
+            if self.cfg.use_relative_mode:
+                if ee_pos is None or ee_quat is None:
+                    raise ValueError("ee_pos and ee_quat are required for relative pose mode")
+                target_pos, target_quat = apply_delta_pose(ee_pos, ee_quat, command)
+            else:
+                target_pos = command[:, 0:3]
+                target_quat = command[:, 3:7]
+            self._write_pos_target(target_pos)
+            self._write_quat_target(target_quat)
+        else:  # position-only
+            if self.cfg.use_relative_mode:
+                if ee_pos is None:
+                    raise ValueError("ee_pos is required for position_rel mode")
+                target_pos = ee_pos + command
+            else:
+                target_pos = command
+            self._write_pos_target(target_pos)
+
+    def _write_pos_target(self, target_pos: torch.Tensor) -> None:
+        """Copy a torch ``(N, 3)`` position tensor into the Warp target_positions buffer."""
+        target_pos_wp = wp.from_torch(target_pos.contiguous(), dtype=wp.vec3)
+        wp.copy(self._target_pos_wp, target_pos_wp)
+
+    def _write_quat_target(self, target_quat: torch.Tensor) -> None:
+        """Copy a torch ``(N, 4)`` quaternion tensor into the Warp target_rotations buffer."""
+        target_quat_wp = wp.from_torch(target_quat.contiguous(), dtype=wp.vec4)
+        wp.copy(self._target_rot_wp, target_quat_wp)
