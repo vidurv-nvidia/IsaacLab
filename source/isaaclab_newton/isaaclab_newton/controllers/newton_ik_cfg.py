@@ -46,7 +46,14 @@ class NewtonIKControllerCfg:
     rng_seed: int = 12345
 
     # --- Objective weights ---
-    position_weight: float = 1.0
+    # NOTE on unit scales: position residuals are in meters, rotation residuals
+    # are in radians. With equal weights, LM over-prioritizes rotation because
+    # a 1-rad error costs ~10,000× more than a 1-cm error in ``sum(r²)``. The
+    # default ``position_weight=100`` rescales meters to cm-scale so that a
+    # ~1 mm position error and a ~0.01 rad (~0.57°) rotation error contribute
+    # equally to the cost. Lower ``position_weight`` loosens position tracking;
+    # raise it for sub-mm precision.
+    position_weight: float = 100.0
     rotation_weight: float = 1.0
     joint_limit_weight: float = 0.1
 
