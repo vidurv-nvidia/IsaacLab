@@ -22,6 +22,9 @@ Added
   pass per env step.
 * Added :meth:`~isaaclab_newton.controllers.NewtonIKController.compute`
   for batched IK solving across all envs in one fused pass.
+* Added Gym task ``Isaac-Reach-Franka-Newton-IK-Rel-v0`` (and ``Isaac-Reach-Franka-Newton-IK-Rel-Play-v0``)
+  using Newton physics with the Newton IK action term for relative-pose EE
+  control.
 
 
 0.5.10 (2026-04-02)
