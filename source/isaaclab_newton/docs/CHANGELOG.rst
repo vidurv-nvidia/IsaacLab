@@ -1,6 +1,15 @@
 Changelog
 ---------
 
+0.5.11 (2026-04-21)
+~~~~~~~~~~~~~~~~~~~
+
+Added
+^^^^^
+
+* Initial scaffolding for Newton inverse-kinematics integration.
+
+
 0.5.10 (2026-04-02)
 ~~~~~~~~~~~~~~~~~~~
 
