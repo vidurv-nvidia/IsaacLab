@@ -65,6 +65,15 @@ class NewtonInverseKinematicsAction(ActionTerm):
                 f"IK model arm DOF count ({ik_info.arm_dof_count}) does not match "
                 f"sim asset joint count ({len(self._joint_ids)})."
             )
+        sim_joint_count = self._asset.data.joint_pos.shape[1]
+        if sim_joint_count != ik_model.joint_coord_count:
+            raise ValueError(
+                f"Sim asset joint count ({sim_joint_count}) does not match IK "
+                f"model joint_coord_count ({ik_model.joint_coord_count}). The "
+                f"two must be built from the same USD asset with matching "
+                f"topology."
+            )
+        self._ik_joint_coord_count = ik_model.joint_coord_count
         self._ik_info = ik_info
 
         # EE offset from cfg.
@@ -133,9 +142,13 @@ class NewtonInverseKinematicsAction(ActionTerm):
 
     def apply_actions(self) -> None:
         """Solve IK across all envs in one pass and write joint position targets."""
-        joint_pos = wp.to_torch(self._asset.data.joint_pos)[:, self._joint_ids]
-        joint_targets = self._controller.compute(joint_pos)
-        self._asset.set_joint_position_target_index(target=joint_targets, joint_ids=self._joint_ids)
+        # Read the full per-env joint_pos (all sim joints); shape (num_envs, joint_coord_count).
+        joint_pos_full = wp.to_torch(self._asset.data.joint_pos)
+        # Batched IK solve returns the same shape.
+        joint_targets_full = self._controller.compute(joint_pos_full)
+        # Extract only the arm-controlled subset and push to the articulation.
+        arm_targets = joint_targets_full[:, self._joint_ids]
+        self._asset.set_joint_position_target_index(target=arm_targets, joint_ids=self._joint_ids)
 
     def reset(self, env_ids: Sequence[int] | None = None) -> None:
         if env_ids is None:
