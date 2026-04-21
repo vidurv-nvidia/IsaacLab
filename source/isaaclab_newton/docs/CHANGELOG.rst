@@ -11,6 +11,8 @@ Added
 * Added :class:`~isaaclab_newton.controllers.IKModelInfo` and
   :func:`~isaaclab_newton.controllers.build_single_arm_ik_model` for
   constructing a single-arm Newton model from an IsaacLab asset cfg.
+* Added :class:`~isaaclab_newton.controllers.NewtonIKControllerCfg`
+  configuration dataclass for the Newton inverse-kinematics controller.
 
 
 0.5.10 (2026-04-02)
