@@ -5,11 +5,13 @@
 
 """Newton-native controllers for IsaacLab (IK, etc.)."""
 
+from .newton_ik import NewtonIKController
 from .newton_ik_cfg import NewtonIKControllerCfg
 from .newton_ik_model_builder import IKModelInfo, build_single_arm_ik_model
 
 __all__ = [
     "IKModelInfo",
+    "NewtonIKController",
     "NewtonIKControllerCfg",
     "build_single_arm_ik_model",
 ]
