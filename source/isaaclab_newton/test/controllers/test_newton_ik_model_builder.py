@@ -11,12 +11,12 @@ simulation_app = AppLauncher(headless=True).app
 
 import pytest
 import warp as wp
-
-from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG
 from isaaclab_newton.controllers.newton_ik_model_builder import (
     IKModelInfo,
     build_single_arm_ik_model,
 )
+
+from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG
 
 
 def test_build_franka_ik_model_returns_single_articulation():

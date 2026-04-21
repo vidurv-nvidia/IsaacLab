@@ -20,6 +20,7 @@ from dataclasses import dataclass
 import newton
 import warp as wp
 from newton import ModelBuilder
+
 from pxr import Usd
 
 from isaaclab.assets import ArticulationCfg
@@ -123,18 +124,14 @@ def build_single_arm_ik_model(
 
     if model.articulation_count < 1:
         raise ValueError(
-            f"Expected USD '{usd_path}' to produce at least 1 articulation, "
-            f"got {model.articulation_count}."
+            f"Expected USD '{usd_path}' to produce at least 1 articulation, got {model.articulation_count}."
         )
 
     # Resolve body names (matching by short name / last USD path component).
     body_labels = list(model.body_label)
     body_short_names = [_label_short_name(lbl) for lbl in body_labels]
     if body_name not in body_short_names:
-        raise ValueError(
-            f"Body name '{body_name}' not found in IK model. "
-            f"Available (short names): {body_short_names}"
-        )
+        raise ValueError(f"Body name '{body_name}' not found in IK model. Available (short names): {body_short_names}")
     ee_link_index = body_short_names.index(body_name)
 
     # Resolve joint names (matching by short name / last USD path component).
@@ -142,10 +139,7 @@ def build_single_arm_ik_model(
     ik_joint_labels = _resolve_joint_names(all_joint_labels, joint_names)
     if not ik_joint_labels:
         all_short = [_label_short_name(lbl) for lbl in all_joint_labels]
-        raise ValueError(
-            f"No joints in IK model match {joint_names}. "
-            f"Available (short names): {all_short}"
-        )
+        raise ValueError(f"No joints in IK model match {joint_names}. Available (short names): {all_short}")
     ik_joint_names = [_label_short_name(lbl) for lbl in ik_joint_labels]
     arm_dof_count = len(ik_joint_names)
     sim_to_ik_joint_perm = [all_joint_labels.index(lbl) for lbl in ik_joint_labels]

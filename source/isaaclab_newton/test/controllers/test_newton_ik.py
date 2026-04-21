@@ -11,13 +11,13 @@ simulation_app = AppLauncher(headless=True).app
 
 import pytest
 import warp as wp
-
-from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG
 from isaaclab_newton.controllers import (
     NewtonIKController,
     NewtonIKControllerCfg,
     build_single_arm_ik_model,
 )
+
+from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG
 
 
 @pytest.fixture(scope="module")

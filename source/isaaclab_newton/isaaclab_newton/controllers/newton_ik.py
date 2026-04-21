@@ -7,12 +7,10 @@
 
 from __future__ import annotations
 
-import numpy as np
-
-import warp as wp
-
 import newton
 import newton.ik as ik
+import numpy as np
+import warp as wp
 
 from .newton_ik_cfg import NewtonIKControllerCfg
 
