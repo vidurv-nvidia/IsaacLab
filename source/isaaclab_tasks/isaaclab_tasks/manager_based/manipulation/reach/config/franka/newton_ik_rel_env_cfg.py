@@ -60,15 +60,17 @@ class FrankaNewtonIKReachEnvCfg(joint_pos_env_cfg.FrankaReachEnvCfg):
         #   - ``iterations=2``: two Gauss-Newton (LM) steps per control step.
         #     One step matches PhysX DLS per-step behavior but under-serves
         #     rotation once position converges; a second polish step lets LM
-        #     balance both objectives in the same control window.
+        #     tighten orientation in the same control window. More than 2 iters
+        #     causes the solver to converge too tightly, commanding joint
+        #     deltas the PD can't track (position regresses).
         #   - ``lambda_initial=1.0``: higher damping shrinks per-step joint
         #     commands toward what the PD can track in one 33 ms control window.
         #   - ``joint_limit_weight=0.02``: the default 0.1 competes too hard with
         #     position/rotation objectives inside the reach workspace.
-        #   - ``rotation_weight=100.0`` equals ``position_weight=100`` (default):
-        #     rotation and position then contribute equally to the LM cost,
-        #     preventing the orientation regression observed when rotation is
-        #     under-weighted.
+        #   - ``rotation_weight=60.0``: unit-normalizes rotation (rad) against
+        #     position (m) — 1 cm pos ≈ 1° (0.017 rad) rot contribute equally
+        #     to the LM cost. Raising rw above 60 (e.g. to pw=100) makes
+        #     rotation cost dominate and position tracking regresses.
         self.actions.arm_action = NewtonInverseKinematicsActionCfg(
             asset_name="robot",
             joint_names=["panda_joint.*"],
@@ -79,7 +81,7 @@ class FrankaNewtonIKReachEnvCfg(joint_pos_env_cfg.FrankaReachEnvCfg):
                 iterations=2,
                 joint_limit_weight=0.02,
                 lambda_initial=1.0,
-                rotation_weight=100.0,
+                rotation_weight=60.0,
             ),
             scale=0.5,
             body_offset=NewtonInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.107]),
