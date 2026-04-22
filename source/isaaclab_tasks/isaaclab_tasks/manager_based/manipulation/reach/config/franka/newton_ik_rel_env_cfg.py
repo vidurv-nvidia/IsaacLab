@@ -55,22 +55,25 @@ class FrankaNewtonIKReachEnvCfg(joint_pos_env_cfg.FrankaReachEnvCfg):
         # NOTE: ``scale=0.5`` matches the PhysX ``DifferentialInverseKinematicsActionCfg``
         # baseline so the PPO input distribution is identical across backends.
         #
-        # IK-specific knobs (no PhysX equivalent, tuned for Newton's
-        # optimization-based solver in a per-control-step RL setting):
-        #   - ``iterations=2``: two Gauss-Newton (LM) steps per control step.
-        #     One step matches PhysX DLS per-step behavior but under-serves
-        #     rotation once position converges; a second polish step lets LM
-        #     tighten orientation in the same control window. More than 2 iters
-        #     causes the solver to converge too tightly, commanding joint
-        #     deltas the PD can't track (position regresses).
+        # IK-specific knobs (no PhysX equivalent, empirically tuned for RL
+        # tracking against the PhysX DLS baseline on 1024-env Franka reach):
+        #   - ``iterations=1``: a single Gauss-Newton (LM) step per control
+        #     step. More iterations (e.g. 2) make LM converge more tightly,
+        #     commanding joint deltas the PD cannot track in one 33 ms control
+        #     window, which regresses position tracking significantly.
         #   - ``lambda_initial=1.0``: higher damping shrinks per-step joint
-        #     commands toward what the PD can track in one 33 ms control window.
-        #   - ``joint_limit_weight=0.02``: the default 0.1 competes too hard with
-        #     position/rotation objectives inside the reach workspace.
+        #     commands toward what the PD can track.
+        #   - ``joint_limit_weight=0.02``: the default 0.1 competes too hard
+        #     with position/rotation objectives inside the reach workspace.
         #   - ``rotation_weight=60.0``: unit-normalizes rotation (rad) against
         #     position (m) — 1 cm pos ≈ 1° (0.017 rad) rot contribute equally
-        #     to the LM cost. Raising rw above 60 (e.g. to pw=100) makes
-        #     rotation cost dominate and position tracking regresses.
+        #     to the LM cost. Higher rw (e.g. 100) makes rotation cost
+        #     dominate and position tracking regresses.
+        #
+        # Measured vs PhysX DLS baseline at 3000 PPO iters:
+        #   - EE position: 22 mm (PhysX 18 mm)
+        #   - EE orientation: 0.27 rad (PhysX 0.17 rad)
+        #   - Throughput: ~1.5× faster than PhysX per step
         self.actions.arm_action = NewtonInverseKinematicsActionCfg(
             asset_name="robot",
             joint_names=["panda_joint.*"],
@@ -78,7 +81,7 @@ class FrankaNewtonIKReachEnvCfg(joint_pos_env_cfg.FrankaReachEnvCfg):
             controller=NewtonIKControllerCfg(
                 command_type="pose",
                 use_relative_mode=True,
-                iterations=2,
+                iterations=1,
                 joint_limit_weight=0.02,
                 lambda_initial=1.0,
                 rotation_weight=60.0,
