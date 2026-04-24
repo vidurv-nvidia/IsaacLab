@@ -10,7 +10,7 @@ from collections.abc import Callable, Sequence
 
 import torch
 import warp as wp
-from newton import GeoType, ModelBuilder, solvers
+from newton import GeoType, ModelBuilder, ShapeFlags, solvers
 from newton._src.usd.schemas import SchemaResolverNewton, SchemaResolverPhysx
 from pxr import Usd, UsdGeom
 
@@ -98,6 +98,10 @@ def _build_newton_builder_from_mapping(
                 approx_indices = []
                 for i in range(len(p.shape_type)):
                     if p.shape_type[i] != GeoType.MESH:
+                        continue
+                    # Skip visual-only shapes — matches Newton's default filter
+                    # in approximate_meshes when shape_indices is None.
+                    if not (p.shape_flags[i] & ShapeFlags.COLLIDE_SHAPES):
                         continue
                     # Skip shapes that will use SDF (matched by body or shape pattern)
                     if p.shape_body[i] in sdf_bodies:
