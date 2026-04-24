@@ -72,6 +72,13 @@ RUN ln -sf ${ISAACSIM_ROOT_PATH} ${ISAACLAB_PATH}/_isaac_sim
 # Install toml dependency
 RUN ${ISAACLAB_PATH}/isaaclab.sh -p -m pip install toml
 
+# Pin mujoco_warp to match the Newton version bundled in IsaacSim's kit/python.
+# NGC's isaac-sim:6.0.0-dev2 is a floating tag; newer snapshots ship
+# mujoco_warp 3.7.x with a 2D geom_dataid that breaks Newton 1.1.0.dev0's
+# 1D kernel declarations (RuntimeError in update_geom_properties_kernel).
+# 3.6.0 is the last-known-good version. Revisit when Newton is updated.
+RUN ${ISAACLAB_PATH}/isaaclab.sh -p -m pip install --force-reinstall mujoco_warp==3.6.0
+
 # Install apt dependencies for extensions that declare them in their extension.toml,
 RUN ${ISAACLAB_PATH}/isaaclab.sh -p ${ISAACLAB_PATH}/tools/install_deps.py apt ${ISAACLAB_PATH}/source && \
     apt-get -y autoremove && apt-get clean && \
