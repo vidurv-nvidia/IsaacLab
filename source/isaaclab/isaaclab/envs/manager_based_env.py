@@ -7,6 +7,7 @@ import builtins
 import logging
 import warnings
 from collections.abc import Sequence
+from sys import stderr
 from typing import Any
 
 import torch
@@ -30,6 +31,9 @@ from .utils.io_descriptors import export_articulations_data, export_scene_data
 
 # import logger
 logger = logging.getLogger(__name__)
+
+# DEBUG: Verify this module is loaded
+print("[MANAGER_BASED_ENV.PY] MODULE LOADED WITH DEBUG CHANGES!", file=stderr, flush=True)
 
 
 class ManagerBasedEnv:
@@ -464,6 +468,13 @@ class ManagerBasedEnv:
         Returns:
             A tuple containing the observations and extras.
         """
+        # Only print on first 3 environment steps to avoid spam during training
+        env_step_count = self._sim_step_counter // self.cfg.decimation
+        if env_step_count < 3:
+            print(f"\n{'*'*80}", file=stderr, flush=True)
+            print(f"[ENV.STEP] Environment step() called (step #{env_step_count}) - will run {self.cfg.decimation} physics steps", file=stderr, flush=True)
+            print(f"{'*'*80}", file=stderr, flush=True)
+
         # process actions
         self.action_manager.process_action(action.to(self.device))
 
@@ -474,14 +485,21 @@ class ManagerBasedEnv:
         is_rendering = self.sim.has_gui() or self.sim.has_rtx_sensors()
 
         # perform physics stepping
-        for _ in range(self.cfg.decimation):
+        for decimation_idx in range(self.cfg.decimation):
             self._sim_step_counter += 1
+            # Only print on first few steps to avoid spam
+            if env_step_count < 3:
+                print(f"[ENV.STEP] Physics decimation step {decimation_idx+1}/{self.cfg.decimation}", file=stderr, flush=True)
             # set actions into buffers
             self.action_manager.apply_action()
             # set actions into simulator
             self.scene.write_data_to_sim()
             # simulate
+            if env_step_count < 3:
+                print(f"[ENV.STEP] ⚡ PHYSICS STEPPING NOW (sim.step())", file=stderr, flush=True)
             self.sim.step(render=False)
+            if env_step_count < 3:
+                print(f"[ENV.STEP] ✓ Physics step complete", file=stderr, flush=True)
             # render between steps only if the GUI or an RTX sensor needs it
             # note: we assume the render interval to be the shortest accepted rendering interval.
             #    If a camera needs rendering at a faster frequency, this will lead to unexpected behavior.
@@ -559,13 +577,19 @@ class ManagerBasedEnv:
         Args:
             env_ids: List of environment ids which must be reset
         """
+        print(f"\n{'#'*80}", file=stderr, flush=True)
+        print(f"[ENV.RESET] _reset_idx() called for env_ids: {env_ids.tolist() if hasattr(env_ids, 'tolist') else list(env_ids)}", file=stderr, flush=True)
+        print(f"{'#'*80}", file=stderr, flush=True)
+
         # reset the internal buffers of the scene elements
         self.scene.reset(env_ids)
 
         # apply events such as randomization for environments that need a reset
         if "reset" in self.event_manager.available_modes:
+            print(f"[ENV.RESET] Applying reset events now (this will call IK event)...", file=stderr, flush=True)
             env_step_count = self._sim_step_counter // self.cfg.decimation
             self.event_manager.apply(mode="reset", env_ids=env_ids, global_env_step_count=env_step_count)
+            print(f"[ENV.RESET] Reset events completed. Returning from _reset_idx().\n", file=stderr, flush=True)
 
         # iterate over all managers and reset them
         # this returns a dictionary of information which is stored in the extras

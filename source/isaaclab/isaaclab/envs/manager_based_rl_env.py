@@ -14,6 +14,8 @@ import gymnasium as gym
 import numpy as np
 import torch
 
+from sys import stderr
+
 from isaaclab.managers import CommandManager, CurriculumManager, RewardManager, TerminationManager
 from isaaclab.ui.widgets import ManagerLiveVisualizer
 
@@ -179,6 +181,8 @@ class ManagerBasedRLEnv(ManagerBasedEnv, gym.Env):
         is_rendering = self.sim.has_gui() or self.sim.has_rtx_sensors()
 
         # perform physics stepping
+        if self.common_step_counter < 3:
+            print(f"\n[RL_ENV.STEP] step #{self.common_step_counter} - performing {self.cfg.decimation} physics steps", file=stderr, flush=True)
         for _ in range(self.cfg.decimation):
             self._sim_step_counter += 1
             # set actions into buffers
@@ -186,6 +190,8 @@ class ManagerBasedRLEnv(ManagerBasedEnv, gym.Env):
             # set actions into simulator
             self.scene.write_data_to_sim()
             # simulate
+            if self.common_step_counter < 3:
+                print(f"[RL_ENV.STEP] ⚡ PHYSICS STEPPING NOW (sim.step())", file=stderr, flush=True)
             self.sim.step(render=False)
             self.recorder_manager.record_post_physics_decimation_step()
             # render between steps only if the GUI or an RTX sensor needs it
@@ -215,6 +221,9 @@ class ManagerBasedRLEnv(ManagerBasedEnv, gym.Env):
         # -- reset envs that terminated/timed-out and log the episode information
         reset_env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         if len(reset_env_ids) > 0:
+            if self.common_step_counter < 10:
+                print(f"\n[RL_ENV.STEP] Auto-resetting {len(reset_env_ids)} envs AFTER physics stepped", file=stderr, flush=True)
+                print(f"[RL_ENV.STEP] IK loop will run now but NO physics step follows until next step() call!", file=stderr, flush=True)
             # trigger recorder terms for pre-reset calls
             self.recorder_manager.record_pre_reset(reset_env_ids)
 

@@ -104,30 +104,30 @@ def set_finger_joint_pos_robotiq_2f85(
 class EventCfg:
     """Configuration for events."""
 
-    robot_joint_stiffness_and_damping = EventTerm(
-        func=mdp.randomize_actuator_gains,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg(
-                "robot", joint_names=["shoulder_.*", "elbow_.*", "wrist_.*"]
-            ),  # only the arm joints are randomized
-            "stiffness_distribution_params": (0.75, 1.5),
-            "damping_distribution_params": (0.3, 3.0),
-            "operation": "scale",
-            "distribution": "log_uniform",
-        },
-    )
+    # robot_joint_stiffness_and_damping = EventTerm(
+    #     func=mdp.randomize_actuator_gains,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg(
+    #             "robot", joint_names=["shoulder_.*", "elbow_.*", "wrist_.*"]
+    #         ),  # only the arm joints are randomized
+    #         "stiffness_distribution_params": (0.75, 1.5),
+    #         "damping_distribution_params": (0.3, 3.0),
+    #         "operation": "scale",
+    #         "distribution": "log_uniform",
+    #     },
+    # )
 
-    joint_friction = EventTerm(
-        func=mdp.randomize_joint_parameters,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=["shoulder_.*", "elbow_.*", "wrist_.*"]),
-            "friction_distribution_params": (0.3, 0.7),
-            "operation": "add",
-            "distribution": "uniform",
-        },
-    )
+    # joint_friction = EventTerm(
+    #     func=mdp.randomize_joint_parameters,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names=["shoulder_.*", "elbow_.*", "wrist_.*"]),
+    #         "friction_distribution_params": (0.3, 0.7),
+    #         "operation": "add",
+    #         "distribution": "uniform",
+    #     },
+    # )
 
     small_gear_physics_material = EventTerm(
         func=mdp.randomize_rigid_body_material,
@@ -192,38 +192,38 @@ class EventCfg:
     randomize_gear_type = EventTerm(
         func=gear_assembly_events.randomize_gear_type,
         mode="reset",
-        params={"gear_types": ["gear_small", "gear_medium", "gear_large"]},
+        params={"gear_types": ["gear_small"]},#["gear_small", "gear_medium", "gear_large"]},
     )
 
     reset_all = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
 
-    randomize_gears_and_base_pose = EventTerm(
-        func=gear_assembly_events.randomize_gears_and_base_pose,
-        mode="reset",
-        params={
-            "pose_range": {
-                "x": [-0.1, 0.1],
-                "y": [-0.25, 0.25],
-                "z": [-0.1, 0.1],
-                "roll": [-math.pi / 90, math.pi / 90],  # 2 degree
-                "pitch": [-math.pi / 90, math.pi / 90],  # 2 degree
-                "yaw": [-math.pi / 6, math.pi / 6],  # 2 degree
-            },
-            "gear_pos_range": {
-                "x": [-0.02, 0.02],
-                "y": [-0.02, 0.02],
-                "z": [0.0575, 0.0775],  # 0.045 + 0.0225
-            },
-            "velocity_range": {},
-        },
-    )
+    # randomize_gears_and_base_pose = EventTerm(
+    #     func=gear_assembly_events.randomize_gears_and_base_pose,
+    #     mode="reset",
+    #     params={
+    #         "pose_range": {
+    #             "x": [-0.1, 0.1],
+    #             "y": [-0.25, 0.25],
+    #             "z": [-0.1, 0.1],
+    #             "roll": [-math.pi / 90, math.pi / 90],  # 2 degree
+    #             "pitch": [-math.pi / 90, math.pi / 90],  # 2 degree
+    #             "yaw": [-math.pi / 6, math.pi / 6],  # 2 degree
+    #         },
+    #         "gear_pos_range": {
+    #             "x": [-0.02, 0.02],
+    #             "y": [-0.02, 0.02],
+    #             "z": [0.0575, 0.0775],  # 0.045 + 0.0225
+    #         },
+    #         "velocity_range": {},
+    #     },
+    # )
 
     set_robot_to_grasp_pose = EventTerm(
         func=gear_assembly_events.set_robot_to_grasp_pose,
         mode="reset",
         params={
             "robot_asset_cfg": SceneEntityCfg("robot"),
-            "pos_randomization_range": {"x": [-0.0, 0.0], "y": [-0.005, 0.005], "z": [-0.003, 0.003]},
+            "pos_randomization_range": {"x": [-0.0, 0.0], "y": [-0.0, 0.0], "z": [0.0, 0.0]}, #{"x": [-0.0, 0.0], "y": [-0.005, 0.005], "z": [-0.003, 0.003]},
         },
     )
 

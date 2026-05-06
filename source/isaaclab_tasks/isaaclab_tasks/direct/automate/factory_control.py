@@ -102,8 +102,10 @@ def get_pose_error(
     """Compute task-space error between target Franka fingertip pose and current pose."""
     # Reference: https://ethz.ch/content/dam/ethz/special-interest/mavt/robotics-n-intelligent-systems/rsl-dam/documents/RobotDynamics2018/RD_HS2018script.pdf
 
+    # Notation: N = batch size, quats are WXYZ convention (isaacsim.core.utils.torch)
+
     # Compute pos error
-    pos_error = ctrl_target_fingertip_midpoint_pos - fingertip_midpoint_pos
+    pos_error = ctrl_target_fingertip_midpoint_pos - fingertip_midpoint_pos  # (N, 3)
 
     # Compute rot error
     if jacobian_type == "geometric":  # See example 2.9.8; note use of J_g and transformation between rotation vectors
@@ -111,66 +113,80 @@ def get_pose_error(
         # Reference: https://personal.utdallas.edu/~sxb027100/dock/quat.html
 
         # Check for shortest path using quaternion dot product.
-        quat_dot = (ctrl_target_fingertip_midpoint_quat * fingertip_midpoint_quat).sum(dim=1, keepdim=True)
-        ctrl_target_fingertip_midpoint_quat = torch.where(
+        quat_dot = (ctrl_target_fingertip_midpoint_quat * fingertip_midpoint_quat).sum(dim=1, keepdim=True)  # (N, 1)
+        ctrl_target_fingertip_midpoint_quat = torch.where(  # (N, 4)
             quat_dot.expand(-1, 4) >= 0, ctrl_target_fingertip_midpoint_quat, -ctrl_target_fingertip_midpoint_quat
         )
 
-        fingertip_midpoint_quat_norm = torch_utils.quat_mul(
+        fingertip_midpoint_quat_norm = torch_utils.quat_mul(  # (N,) — scalar w component of q * q*
             fingertip_midpoint_quat, torch_utils.quat_conjugate(fingertip_midpoint_quat)
         )[:, 0]  # scalar component
-        fingertip_midpoint_quat_inv = torch_utils.quat_conjugate(
+        fingertip_midpoint_quat_inv = torch_utils.quat_conjugate(  # (N, 4)
             fingertip_midpoint_quat
-        ) / fingertip_midpoint_quat_norm.unsqueeze(-1)
-        quat_error = torch_utils.quat_mul(ctrl_target_fingertip_midpoint_quat, fingertip_midpoint_quat_inv)
+        ) / fingertip_midpoint_quat_norm.unsqueeze(-1)  # (N, 4) / (N, 1)
+        quat_error = torch_utils.quat_mul(ctrl_target_fingertip_midpoint_quat, fingertip_midpoint_quat_inv)  # (N, 4)
 
         # Convert to axis-angle error
-        axis_angle_error = axis_angle_from_quat(quat_error)
+        axis_angle_error = axis_angle_from_quat(quat_error)  # (N, 3)
 
     if rot_error_type == "quat":
-        return pos_error, quat_error
+        return pos_error, quat_error  # (N, 3), (N, 4)
     elif rot_error_type == "axis_angle":
-        return pos_error, axis_angle_error
+        return pos_error, axis_angle_error  # (N, 3), (N, 3)
     else:
         raise ValueError(f"Unsupported rotation error type: {rot_error_type}. Valid: 'quat', 'axis_angle'.")
 
 
 def _get_delta_dof_pos(delta_pose, ik_method, jacobian, device):
-    """Get delta Franka DOF position from delta pose using specified IK method."""
+    """Get delta Franka DOF position from delta pose using specified IK method.
+
+    Args:
+        delta_pose: Desired pose change. Shape (N, 6).
+        ik_method: IK method string — "pinv", "trans", "dls", or "svd".
+        jacobian: Jacobian matrix. Shape (N, 6, J).
+        device: Torch device.
+
+    Returns:
+        Joint position deltas. Shape (N, J).
+    """
+    # Notation: N = batch size, J = num_joints (= jacobian.shape[2])
     # References:
     # 1) https://www.cs.cmu.edu/~15464-s13/lectures/lecture6/iksurvey.pdf
     # 2) https://ethz.ch/content/dam/ethz/special-interest/mavt/robotics-n-intelligent-systems/rsl-dam/documents/RobotDynamics2018/RD_HS2018script.pdf (p. 47)  # noqa: E501
 
     if ik_method == "pinv":  # Jacobian pseudoinverse
         k_val = 1.0
-        jacobian_pinv = torch.linalg.pinv(jacobian)
-        delta_dof_pos = k_val * jacobian_pinv @ delta_pose.unsqueeze(-1)
-        delta_dof_pos = delta_dof_pos.squeeze(-1)
+        jacobian_pinv = torch.linalg.pinv(jacobian)  # (N, J, 6)
+        delta_dof_pos = k_val * jacobian_pinv @ delta_pose.unsqueeze(-1)  # (N, J, 6) @ (N, 6, 1) -> (N, J, 1)
+        delta_dof_pos = delta_dof_pos.squeeze(-1)  # (N, J)
 
     elif ik_method == "trans":  # Jacobian transpose
         k_val = 1.0
-        jacobian_T = torch.transpose(jacobian, dim0=1, dim1=2)
-        delta_dof_pos = k_val * jacobian_T @ delta_pose.unsqueeze(-1)
-        delta_dof_pos = delta_dof_pos.squeeze(-1)
+        jacobian_T = torch.transpose(jacobian, dim0=1, dim1=2)  # (N, J, 6)
+        delta_dof_pos = k_val * jacobian_T @ delta_pose.unsqueeze(-1)  # (N, J, 6) @ (N, 6, 1) -> (N, J, 1)
+        delta_dof_pos = delta_dof_pos.squeeze(-1)  # (N, J)
 
     elif ik_method == "dls":  # damped least squares (Levenberg-Marquardt)
         lambda_val = 0.1  # 0.1
-        jacobian_T = torch.transpose(jacobian, dim0=1, dim1=2)
-        lambda_matrix = (lambda_val**2) * torch.eye(n=jacobian.shape[1], device=device)
+        jacobian_T = torch.transpose(jacobian, dim0=1, dim1=2)  # (N, J, 6)
+        lambda_matrix = (lambda_val**2) * torch.eye(n=jacobian.shape[1], device=device)  # (6, 6)
+        # J @ J^T: (N, 6, J) @ (N, J, 6) -> (N, 6, 6)
+        # inv(J @ J^T + lambda^2 * I): (N, 6, 6)
+        # J^T @ inv(...) @ delta_pose: (N, J, 6) @ (N, 6, 6) @ (N, 6, 1) -> (N, J, 1)
         delta_dof_pos = jacobian_T @ torch.inverse(jacobian @ jacobian_T + lambda_matrix) @ delta_pose.unsqueeze(-1)
-        delta_dof_pos = delta_dof_pos.squeeze(-1)
+        delta_dof_pos = delta_dof_pos.squeeze(-1)  # (N, J)
 
     elif ik_method == "svd":  # adaptive SVD
         k_val = 1.0
-        U, S, Vh = torch.linalg.svd(jacobian)
-        S_inv = 1.0 / S
+        U, S, Vh = torch.linalg.svd(jacobian)  # U: (N, 6, 6), S: (N, 6), Vh: (N, J, J)
+        S_inv = 1.0 / S  # (N, 6)
         min_singular_value = 1.0e-5
-        S_inv = torch.where(min_singular_value < S, S_inv, torch.zeros_like(S_inv))
-        jacobian_pinv = (
+        S_inv = torch.where(min_singular_value < S, S_inv, torch.zeros_like(S_inv))  # (N, 6)
+        jacobian_pinv = (  # (N, J, 6)
             torch.transpose(Vh, dim0=1, dim1=2)[:, :, :6] @ torch.diag_embed(S_inv) @ torch.transpose(U, dim0=1, dim1=2)
-        )
-        delta_dof_pos = k_val * jacobian_pinv @ delta_pose.unsqueeze(-1)
-        delta_dof_pos = delta_dof_pos.squeeze(-1)
+        )  # (N, J, 6) @ (N, 6, 6) @ (N, 6, 6) -> (N, J, 6)
+        delta_dof_pos = k_val * jacobian_pinv @ delta_pose.unsqueeze(-1)  # (N, J, 6) @ (N, 6, 1) -> (N, J, 1)
+        delta_dof_pos = delta_dof_pos.squeeze(-1)  # (N, J)
 
     return delta_dof_pos
 

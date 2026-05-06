@@ -49,7 +49,7 @@ class GearAssemblySceneCfg(InteractiveSceneCfg):
         init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, -1.05)),
     )
 
-    factory_gear_base = RigidObjectCfg(
+    factory_gear_base = ArticulationCfg(
         prim_path="{ENV_REGEX_NS}/FactoryGearBase",
         # TODO: change to common isaac sim directory
         spawn=sim_utils.UsdFileCfg(
@@ -188,9 +188,9 @@ class ObservationsCfg:
         gear_shaft_pos = ObsTerm(
             func=mdp.gear_shaft_pos_w,
             params={},  # Will be populated in __post_init__
-            noise=ResetSampledConstantNoiseModelCfg(
-                noise_cfg=UniformNoiseCfg(n_min=-0.005, n_max=0.005, operation="add")
-            ),
+            # noise=ResetSampledConstantNoiseModelCfg(
+            #     noise_cfg=UniformNoiseCfg(n_min=-0.005, n_max=0.005, operation="add")
+            # ),
         )
         gear_shaft_quat = ObsTerm(func=mdp.gear_shaft_quat_w)
 

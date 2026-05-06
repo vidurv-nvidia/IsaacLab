@@ -18,6 +18,7 @@ parser.add_argument(
 )
 parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
+parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment.")
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
@@ -32,6 +33,8 @@ simulation_app = app_launcher.app
 import gymnasium as gym
 import torch
 
+from isaaclab.utils.seed import configure_seed
+
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 
@@ -40,10 +43,19 @@ from isaaclab_tasks.utils import parse_env_cfg
 
 def main():
     """Zero actions agent with Isaac Lab environment."""
+    # set seed if provided
+    if args_cli.seed is not None:
+        configure_seed(args_cli.seed)
+
     # parse configuration
     env_cfg = parse_env_cfg(
         args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
     )
+
+    # set seed on env config so ManagerBasedEnv picks it up
+    if args_cli.seed is not None:
+        env_cfg.seed = args_cli.seed
+
     # create environment
     env = gym.make(args_cli.task, cfg=env_cfg)
 
