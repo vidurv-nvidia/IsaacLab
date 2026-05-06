@@ -118,6 +118,9 @@ class RigidBodyPropertiesCfg:
     gravity_compensation_scale: float | None = None
     """Scale factor for gravity compensation for the body. Defaults to None (attribute not written to USD).
 
+    The value is a multiplier where 0.0 means no compensation and 1.0 means full
+    gravity compensation. Values between 0.0 and 1.0 apply partial compensation.
+
     .. note::
 
         This attribute is only supported by the Newton (MuJoCo) simulation backend.
