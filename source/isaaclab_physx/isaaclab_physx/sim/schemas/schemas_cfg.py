@@ -16,6 +16,7 @@ from isaaclab.sim.schemas.schemas_cfg import (
     MeshCollisionBaseCfg,
     RigidBodyBaseCfg,
     RigidBodyFragment,
+    UsdPhysicsRigidBodyCfg,
 )
 from isaaclab.utils.configclass import configclass
 
@@ -320,27 +321,39 @@ class PhysxRigidBodyCfg(RigidBodyFragment):
     """
 
 
-@configclass
-class RigidBodyPropertiesCfg(PhysxRigidBodyPropertiesCfg):
-    """Deprecated: use :class:`PhysxRigidBodyPropertiesCfg` or :class:`~isaaclab.sim.schemas.RigidBodyBaseCfg`.
+# UsdPhysics ``physics:*`` rigid-body fields; everything else routes to the PhysX fragment.
+_USD_RIGID_FIELDS = ("rigid_body_enabled", "kinematic_enabled")
+
+
+def RigidBodyPropertiesCfg(**kwargs) -> list[RigidBodyFragment]:
+    """Deprecated factory returning the equivalent rigid-body fragment list.
 
     .. deprecated:: 4.6.22
-        ``RigidBodyPropertiesCfg`` has been split into
-        :class:`~isaaclab.sim.schemas.RigidBodyBaseCfg` (solver-common) and
-        :class:`PhysxRigidBodyPropertiesCfg` (PhysX-specific) and relocated to
-        :mod:`isaaclab_physx.sim.schemas`. This alias preserves backwards compatibility and is
-        scheduled for removal in 5.0.
-    """
+        ``RigidBodyPropertiesCfg`` no longer returns a single cfg. Pass a list of fragments
+        instead, e.g. ``rigid_props=[UsdPhysicsRigidBodyCfg(...), PhysxRigidBodyCfg(...)]``.
+        This factory forwards the legacy keyword arguments to the matching fragments
+        (``physics:*`` fields to :class:`~isaaclab.sim.schemas.UsdPhysicsRigidBodyCfg`, the rest to
+        :class:`PhysxRigidBodyCfg`) and is scheduled for removal in 5.0.
 
-    def __post_init__(self):
-        warnings.warn(
-            "'RigidBodyPropertiesCfg' is deprecated and will be removed in 5.0. Use"
-            " 'isaaclab_physx.sim.schemas.PhysxRigidBodyPropertiesCfg' for PhysX properties, or"
-            " 'isaaclab.sim.schemas.RigidBodyBaseCfg' for solver-common properties only.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__post_init__()
+    Args:
+        **kwargs: Any field accepted by the legacy ``RigidBodyPropertiesCfg`` cfg.
+
+    Returns:
+        The equivalent fragment list. Always contains a
+        :class:`~isaaclab.sim.schemas.UsdPhysicsRigidBodyCfg` (so the ``RigidBodyAPI`` anchor is
+        applied) and, when any PhysX field is set, a :class:`PhysxRigidBodyCfg`.
+    """
+    warnings.warn(
+        "'RigidBodyPropertiesCfg' is deprecated and will be removed in 5.0. Pass a list of"
+        " fragments instead, e.g. [UsdPhysicsRigidBodyCfg(...), PhysxRigidBodyCfg(...)].",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    usd = {k: kwargs.pop(k) for k in _USD_RIGID_FIELDS if k in kwargs}
+    frags: list[RigidBodyFragment] = [UsdPhysicsRigidBodyCfg(**usd)]
+    if kwargs:  # remaining kwargs are physxRigidBody:* fields (incl. disable_gravity)
+        frags.append(PhysxRigidBodyCfg(**kwargs))
+    return frags
 
 
 @configclass

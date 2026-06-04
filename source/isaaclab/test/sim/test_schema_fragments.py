@@ -12,6 +12,8 @@ simulation_app = AppLauncher(headless=True).app
 
 """Rest everything follows."""
 
+import warnings
+
 from pxr import UsdGeom, UsdPhysics
 
 import isaaclab.sim as sim_utils
@@ -152,13 +154,31 @@ def test_spawn_shape_with_rigid_fragment_list():
 
 
 # -------------------------------------------------------------------------------------
+# Task 7 -- RigidBodyPropertiesCfg deprecation factory (isaaclab_physx)
+# -------------------------------------------------------------------------------------
+
+
+def test_rigidbody_properties_factory_returns_fragments():
+    from isaaclab_physx.sim.schemas import PhysxRigidBodyCfg, RigidBodyPropertiesCfg
+
+    from isaaclab.sim.schemas import UsdPhysicsRigidBodyCfg
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        frags = RigidBodyPropertiesCfg(rigid_body_enabled=True, linear_damping=0.1)
+    assert any(issubclass(x.category, DeprecationWarning) for x in w)
+    assert any(isinstance(f, UsdPhysicsRigidBodyCfg) and f.rigid_body_enabled is True for f in frags)
+    assert any(isinstance(f, PhysxRigidBodyCfg) and abs(f.linear_damping - 0.1) < 1e-6 for f in frags)
+
+
+# -------------------------------------------------------------------------------------
 # Task 8 -- public imports
 # -------------------------------------------------------------------------------------
 
 
 def test_public_imports():
     from isaaclab_newton.sim.schemas import MujocoRigidBodyCfg  # noqa: F401
-    from isaaclab_physx.sim.schemas import PhysxRigidBodyCfg  # noqa: F401
+    from isaaclab_physx.sim.schemas import PhysxRigidBodyCfg, RigidBodyPropertiesCfg  # noqa: F401
 
     from isaaclab.sim.schemas import (  # noqa: F401
         RigidBodyFragment,
