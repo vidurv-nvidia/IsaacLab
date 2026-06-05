@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 __all__ = [
+    "MujocoJointCfg",
     "MujocoJointDrivePropertiesCfg",
     "MujocoRigidBodyCfg",
     "MujocoRigidBodyPropertiesCfg",
@@ -18,6 +19,7 @@ __all__ = [
 ]
 
 from .schemas_cfg import (
+    MujocoJointCfg,
     MujocoJointDrivePropertiesCfg,
     MujocoRigidBodyCfg,
     MujocoRigidBodyPropertiesCfg,
