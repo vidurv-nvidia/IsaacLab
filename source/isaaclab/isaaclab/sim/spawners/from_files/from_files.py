@@ -344,7 +344,7 @@ def _spawn_from_usd_file(
 
     # modify rigid body properties
     if cfg.rigid_props is not None:
-        # transition routing: new fragment list -> apply_*; legacy single cfg -> modify_*
+        # transition shim, remove later: new fragment list -> apply_*; legacy single cfg -> modify_*
         rigid_frags = cfg.rigid_props if isinstance(cfg.rigid_props, (list, tuple)) else [cfg.rigid_props]
         if rigid_frags and all(isinstance(f, schemas.SchemaFragment) for f in rigid_frags):
             schemas.apply_rigid_body_properties(prim_path, rigid_frags)
@@ -353,7 +353,7 @@ def _spawn_from_usd_file(
     # modify collision properties
     if cfg.collision_props is not None:
         schemas.modify_collision_properties(prim_path, cfg.collision_props)
-    # modify mass properties (transition routing: fragment list -> apply_*; legacy cfg -> modify_*)
+    # modify mass properties (transition shim, remove later: fragment list -> apply_*; legacy cfg -> modify_*)
     if cfg.mass_props is not None:
         mass_frags = cfg.mass_props if isinstance(cfg.mass_props, (list, tuple)) else [cfg.mass_props]
         if mass_frags and all(isinstance(f, schemas.SchemaFragment) for f in mass_frags):
