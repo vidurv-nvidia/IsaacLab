@@ -344,7 +344,7 @@ def _spawn_from_usd_file(
 
     # modify rigid body properties
     if cfg.rigid_props is not None:
-        # transition routing: new fragment list -> apply_*; legacy single cfg -> modify_*
+        # transition shim, remove later: new fragment list -> apply_*; legacy single cfg -> modify_*
         rigid_frags = cfg.rigid_props if isinstance(cfg.rigid_props, (list, tuple)) else [cfg.rigid_props]
         if rigid_frags and all(isinstance(f, schemas.SchemaFragment) for f in rigid_frags):
             schemas.apply_rigid_body_properties(prim_path, rigid_frags)
@@ -380,7 +380,7 @@ def _spawn_from_usd_file(
             MujocoRigidBodyPropertiesCfg,
         )
 
-        # transition routing: a fragment list -> apply_joint_drive_properties; a legacy single cfg
+        # transition shim, remove later: a fragment list -> apply_joint_drive_properties; a legacy single cfg
         # -> modify_joint_drive_properties.
         joint_frags = (
             cfg.joint_drive_props if isinstance(cfg.joint_drive_props, (list, tuple)) else [cfg.joint_drive_props]
