@@ -45,7 +45,7 @@ KUKA_ALLEGRO_CFG = ArticulationCfg(
             sleep_threshold=0.005,
             stabilization_threshold=0.0005,
         ),
-        joint_drive_props=sim_utils.JointDrivePropertiesCfg(drive_type="force"),
+        joint_drive_props=[sim_utils.UsdPhysicsDriveCfg(drive_type="force")],
     ),
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(0.0, 0.0, 0.0),

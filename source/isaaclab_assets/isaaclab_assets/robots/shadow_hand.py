@@ -41,7 +41,7 @@ SHADOW_HAND_CFG = ArticulationCfg(
             stabilization_threshold=0.0005,
         ),
         # collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
-        joint_drive_props=sim_utils.JointDrivePropertiesCfg(drive_type="force"),
+        joint_drive_props=[sim_utils.UsdPhysicsDriveCfg(drive_type="force")],
         fixed_tendons_props=sim_utils.FixedTendonPropertiesCfg(limit_stiffness=30.0, damping=0.1),
     ),
     init_state=ArticulationCfg.InitialStateCfg(

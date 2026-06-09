@@ -158,7 +158,9 @@ class ShadowHandRobotCfg(PresetCfg):
                 max_depenetration_velocity=1000.0,
             ),
             articulation_props=sim_utils.ArticulationRootPropertiesCfg(enabled_self_collisions=True),
-            joint_drive_props=sim_utils.JointDrivePropertiesCfg(drive_type="force", ensure_drives_exist=True),
+            # ``ensure_drives_exist`` is a writer flag (not a fragment field) handled by the spawner.
+            joint_drive_props=[sim_utils.UsdPhysicsDriveCfg(drive_type="force")],
+            ensure_drives_exist=True,
             fixed_tendons_props=sim_utils.FixedTendonPropertiesCfg(damping=0.1),
         ),
         init_state=ArticulationCfg.InitialStateCfg(

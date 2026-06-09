@@ -18,6 +18,7 @@ from isaaclab.sim.schemas.schemas_cfg import (
     MeshCollisionBaseCfg,
     RigidBodyBaseCfg,
     RigidBodyFragment,
+    UsdPhysicsDriveCfg,
     _deprecate_field_alias,
 )
 from isaaclab.utils.configclass import configclass
@@ -421,27 +422,42 @@ class PhysxJointDrivePropertiesCfg(JointDriveBaseCfg):
     _usd_namespace: ClassVar[str | None] = "physxJoint"
 
 
-@configclass
-class JointDrivePropertiesCfg(PhysxJointDrivePropertiesCfg):
-    """Deprecated: use :class:`PhysxJointDrivePropertiesCfg` or :class:`~isaaclab.sim.schemas.JointDriveBaseCfg`.
+# USD-drive (``UsdPhysics.DriveAPI``) fields owned by ``UsdPhysicsDriveCfg``. Includes the
+# ``max_effort`` -> ``max_force`` deprecation alias, which lives on the USD fragment. Anything
+# the legacy ``JointDrivePropertiesCfg`` accepted that is not listed here (``max_joint_velocity``
+# and its ``max_velocity`` alias) is a backend field and routes to ``PhysxJointCfg``. The
+# non-fragment writer flag ``ensure_drives_exist`` is handled separately (see the factory).
+_USD_DRIVE_FIELDS = ("drive_type", "max_force", "max_effort", "stiffness", "damping")
 
-    .. deprecated:: 4.6.22
-        ``JointDrivePropertiesCfg`` has been split into
-        :class:`~isaaclab.sim.schemas.JointDriveBaseCfg` (solver-common) and
-        :class:`PhysxJointDrivePropertiesCfg` (PhysX-specific) and relocated to
-        :mod:`isaaclab_physx.sim.schemas`. This alias preserves backwards compatibility and is
-        scheduled for removal in 5.0.
+
+def JointDrivePropertiesCfg(**kwargs) -> list:
+    """Deprecated factory returning the equivalent joint-drive fragment list.
+
+    Splits the legacy keyword arguments into a :class:`~isaaclab.sim.schemas.UsdPhysicsDriveCfg`
+    fragment (USD ``DriveAPI`` fields) and, when backend fields are present, a
+    :class:`PhysxJointCfg` fragment.
+
+    .. deprecated:: 4.6
+        Pass a list of fragments, e.g.
+        ``joint_drive_props=[UsdPhysicsDriveCfg(...), PhysxJointCfg(...)]``. Removal in 5.0.
     """
-
-    def __post_init__(self):
-        warnings.warn(
-            "'JointDrivePropertiesCfg' is deprecated and will be removed in 5.0. Use"
-            " 'isaaclab_physx.sim.schemas.PhysxJointDrivePropertiesCfg' for PhysX properties, or"
-            " 'isaaclab.sim.schemas.JointDriveBaseCfg' for solver-common properties only.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__post_init__()
+    warnings.warn(
+        "'JointDrivePropertiesCfg' is deprecated and will be removed in 5.0. Pass a list of"
+        " fragments instead, e.g. [UsdPhysicsDriveCfg(...), PhysxJointCfg(...)]. The"
+        " 'ensure_drives_exist' argument is no longer a fragment field; it is now a writer flag"
+        " (apply_joint_drive_properties(..., ensure_drives_exist=) / the spawner cfg's"
+        " 'ensure_drives_exist').",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    # ``ensure_drives_exist`` is a writer/spawner flag, not a fragment field; drop it here so it
+    # is not forwarded onto any fragment.
+    kwargs.pop("ensure_drives_exist", None)
+    usd = {k: kwargs.pop(k) for k in _USD_DRIVE_FIELDS if k in kwargs}
+    frags = [UsdPhysicsDriveCfg(**usd)]
+    if kwargs:
+        frags.append(PhysxJointCfg(**kwargs))
+    return frags
 
 
 @configclass

@@ -37,7 +37,10 @@ CASSIE_CFG = ArticulationCfg(
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
             enabled_self_collisions=True, solver_position_iteration_count=4, solver_velocity_iteration_count=0
         ),
-        joint_drive_props=sim_utils.JointDrivePropertiesCfg(ensure_drives_exist=True),
+        # ``ensure_drives_exist`` is a writer flag (not a fragment field); the empty USD-drive
+        # fragment makes the joint-drive writer run so the flag takes effect.
+        joint_drive_props=[sim_utils.UsdPhysicsDriveCfg()],
+        ensure_drives_exist=True,
     ),
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(0.0, 0.0, 0.9),
