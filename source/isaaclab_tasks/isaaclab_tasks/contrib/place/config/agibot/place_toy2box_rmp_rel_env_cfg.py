@@ -21,7 +21,7 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.sensors import ContactSensorCfg, FrameTransformerCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
-from isaaclab.sim.schemas.schemas_cfg import MassPropertiesCfg, RigidBodyPropertiesCfg
+from isaaclab.sim.schemas.schemas_cfg import MassCfg, RigidBodyPropertiesCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
 from isaaclab.utils.configclass import configclass
@@ -273,10 +273,8 @@ class RmpFlowAgibotPlaceToy2BoxEnvCfg(PlaceToy2BoxEnvCfg):
         box_properties = toy_truck_properties.copy()
 
         # Notes: remember to add Physics/Mass properties to the toy_truck mesh to make grasping successful,
-        # then you can use below MassPropertiesCfg to set the mass of the toy_truck
-        toy_mass_properties = MassPropertiesCfg(
-            mass=0.05,
-        )
+        # then you can use below MassCfg to set the mass of the toy_truck
+        toy_mass_properties = [MassCfg(mass=0.05)]
 
         self.scene.toy_truck = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/ToyTruck",

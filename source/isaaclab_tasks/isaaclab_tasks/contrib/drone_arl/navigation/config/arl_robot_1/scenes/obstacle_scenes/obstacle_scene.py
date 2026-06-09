@@ -73,7 +73,7 @@ def generate_obstacle_collection(cfg: ObstaclesSceneCfg) -> RigidObjectCollectio
                     max_angular_velocity=0.0,
                 ),
                 # mass of walls needs to be way larger than weight of obstacles to make them not move during reset
-                mass_props=sim_utils.MassPropertiesCfg(mass=10000000.0),
+                mass_props=[sim_utils.MassCfg(mass=10000000.0)],
                 collision_props=sim_utils.CollisionPropertiesCfg(),
             ),
             init_state=RigidObjectCfg.InitialStateCfg(pos=tuple(default_center)),
@@ -104,7 +104,7 @@ def generate_obstacle_collection(cfg: ObstaclesSceneCfg) -> RigidObjectCollectio
                     max_linear_velocity=0.0,
                     max_angular_velocity=0.0,
                 ),
-                mass_props=sim_utils.MassPropertiesCfg(mass=100.0),
+                mass_props=[sim_utils.MassCfg(mass=100.0)],
                 collision_props=sim_utils.CollisionPropertiesCfg(),
             ),
             init_state=RigidObjectCfg.InitialStateCfg(pos=tuple(default_center)),

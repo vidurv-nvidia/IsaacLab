@@ -39,7 +39,7 @@ class ObjectCfg(PresetCfg):
                 stabilization_threshold=0.0025,
                 max_depenetration_velocity=1000.0,
             ),
-            mass_props=sim_utils.MassPropertiesCfg(density=400.0),
+            mass_props=[sim_utils.MassCfg(density=400.0)],
             scale=(1.2, 1.2, 1.2),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, -0.17, 0.56), rot=(0.0, 0.0, 0.0, 1.0)),
@@ -48,7 +48,7 @@ class ObjectCfg(PresetCfg):
         prim_path="/World/envs/env_.*/object",
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            mass_props=sim_utils.MassPropertiesCfg(density=400.0),
+            mass_props=[sim_utils.MassCfg(density=400.0)],
             scale=(1.2, 1.2, 1.2),
         ),
         init_state=ArticulationCfg.InitialStateCfg(
@@ -71,7 +71,7 @@ class ObjectCfg(PresetCfg):
                 stabilization_threshold=0.0025,
                 max_depenetration_velocity=1000.0,
             ),
-            mass_props=sim_utils.MassPropertiesCfg(density=400.0),
+            mass_props=[sim_utils.MassCfg(density=400.0)],
             scale=(1.2, 1.2, 1.2),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, -0.17, 0.56), rot=(0.0, 0.0, 0.0, 1.0)),

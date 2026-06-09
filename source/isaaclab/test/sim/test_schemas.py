@@ -14,6 +14,7 @@ simulation_app = AppLauncher(headless=True).app
 
 import math
 import warnings
+from typing import ClassVar
 
 import pytest
 from isaaclab_physx.sim.schemas import (
@@ -37,7 +38,25 @@ import isaaclab.sim.schemas as schemas
 from isaaclab.sim import SimulationCfg, SimulationContext
 from isaaclab.sim.spawners.materials import RigidBodyMaterialBaseCfg, spawn_rigid_body_material
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
+from isaaclab.utils.configclass import configclass
 from isaaclab.utils.string import to_camel_case
+
+
+@configclass
+class _LegacyMassPropertiesCfg:
+    """Plain single-namespace mass configclass for exercising the legacy mass writers.
+
+    Mirrors the field set the legacy ``modify_mass_properties`` / ``define_mass_properties``
+    writers consume (``physics:mass`` / ``physics:density``) without the fragment ``func``
+    field carried by :class:`~isaaclab.sim.schemas.MassCfg`.
+    """
+
+    _usd_namespace: ClassVar[str | None] = "physics"
+    _usd_applied_schema: ClassVar[str | None] = None
+    _usd_field_exceptions: ClassVar[dict] = {}
+
+    mass: float | None = None
+    density: float | None = None
 
 
 @pytest.fixture
@@ -83,7 +102,7 @@ def setup_simulation():
         min_torsional_patch_radius=0.1,
         torsional_patch_radius=1.0,
     )
-    mass_cfg = schemas.MassPropertiesCfg(mass=1.0, density=100.0)
+    mass_cfg = _LegacyMassPropertiesCfg(mass=1.0, density=100.0)
     joint_cfg = PhysxJointDrivePropertiesCfg(
         drive_type="acceleration", max_force=80.0, max_joint_velocity=10.0, stiffness=10.0, damping=0.1
     )

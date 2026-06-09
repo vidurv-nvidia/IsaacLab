@@ -226,7 +226,7 @@ class Insertion(AssemblyTask):
                 enabled_self_collisions=True,
                 fix_root_link=True,  # add this so the fixed asset is set to have a fixed base
             ),
-            mass_props=sim_utils.MassPropertiesCfg(mass=fixed_asset_cfg.mass),
+            mass_props=[sim_utils.MassCfg(mass=fixed_asset_cfg.mass)],
             collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
         ),
         init_state=ArticulationCfg.InitialStateCfg(
@@ -256,7 +256,7 @@ class Insertion(AssemblyTask):
                 solver_velocity_iteration_count=1,
                 max_contact_impulse=1e32,
             ),
-            mass_props=sim_utils.MassPropertiesCfg(mass=held_asset_cfg.mass),
+            mass_props=[sim_utils.MassCfg(mass=held_asset_cfg.mass)],
             collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
         ),
         # init_state=ArticulationCfg.InitialStateCfg(

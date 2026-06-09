@@ -71,7 +71,7 @@ class ObjectCfg(PresetCfg):
             disable_gravity=False,
         ),
         collision_props=sim_utils.CollisionPropertiesCfg(),
-        mass_props=sim_utils.MassPropertiesCfg(mass=0.2),
+        mass_props=[sim_utils.MassCfg(mass=0.2)],
     )
     cube = sim_utils.CuboidCfg(
         size=(0.05, 0.1, 0.1),
@@ -82,7 +82,7 @@ class ObjectCfg(PresetCfg):
             disable_gravity=False,
         ),
         collision_props=sim_utils.CollisionPropertiesCfg(),
-        mass_props=sim_utils.MassPropertiesCfg(mass=0.2),
+        mass_props=[sim_utils.MassCfg(mass=0.2)],
     )
     default = shapes
 

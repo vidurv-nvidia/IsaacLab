@@ -148,7 +148,7 @@ class PegInsert(FactoryTask):
                 solver_velocity_iteration_count=1,
                 max_contact_impulse=1e32,
             ),
-            mass_props=sim_utils.MassPropertiesCfg(mass=fixed_asset_cfg.mass),
+            mass_props=[sim_utils.MassCfg(mass=fixed_asset_cfg.mass)],
             collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
         ),
         init_state=ArticulationCfg.InitialStateCfg(
@@ -173,7 +173,7 @@ class PegInsert(FactoryTask):
                 solver_velocity_iteration_count=1,
                 max_contact_impulse=1e32,
             ),
-            mass_props=sim_utils.MassPropertiesCfg(mass=held_asset_cfg.mass),
+            mass_props=[sim_utils.MassCfg(mass=held_asset_cfg.mass)],
             collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
         ),
         init_state=ArticulationCfg.InitialStateCfg(
@@ -228,7 +228,7 @@ class GearMesh(FactoryTask):
                 solver_velocity_iteration_count=1,
                 max_contact_impulse=1e32,
             ),
-            mass_props=sim_utils.MassPropertiesCfg(mass=0.019),
+            mass_props=[sim_utils.MassCfg(mass=0.019)],
             collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
         ),
         init_state=ArticulationCfg.InitialStateCfg(
@@ -254,7 +254,7 @@ class GearMesh(FactoryTask):
                 solver_velocity_iteration_count=1,
                 max_contact_impulse=1e32,
             ),
-            mass_props=sim_utils.MassPropertiesCfg(mass=0.019),
+            mass_props=[sim_utils.MassCfg(mass=0.019)],
             collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
         ),
         init_state=ArticulationCfg.InitialStateCfg(
@@ -306,7 +306,7 @@ class GearMesh(FactoryTask):
                 solver_velocity_iteration_count=1,
                 max_contact_impulse=1e32,
             ),
-            mass_props=sim_utils.MassPropertiesCfg(mass=fixed_asset_cfg.mass),
+            mass_props=[sim_utils.MassCfg(mass=fixed_asset_cfg.mass)],
             collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
         ),
         init_state=ArticulationCfg.InitialStateCfg(
@@ -331,7 +331,7 @@ class GearMesh(FactoryTask):
                 solver_velocity_iteration_count=1,
                 max_contact_impulse=1e32,
             ),
-            mass_props=sim_utils.MassPropertiesCfg(mass=held_asset_cfg.mass),
+            mass_props=[sim_utils.MassCfg(mass=held_asset_cfg.mass)],
             collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
         ),
         init_state=ArticulationCfg.InitialStateCfg(
@@ -412,7 +412,7 @@ class NutThread(FactoryTask):
                 solver_velocity_iteration_count=1,
                 max_contact_impulse=1e32,
             ),
-            mass_props=sim_utils.MassPropertiesCfg(mass=fixed_asset_cfg.mass),
+            mass_props=[sim_utils.MassCfg(mass=fixed_asset_cfg.mass)],
             collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
         ),
         init_state=ArticulationCfg.InitialStateCfg(
@@ -437,7 +437,7 @@ class NutThread(FactoryTask):
                 solver_velocity_iteration_count=1,
                 max_contact_impulse=1e32,
             ),
-            mass_props=sim_utils.MassPropertiesCfg(mass=held_asset_cfg.mass),
+            mass_props=[sim_utils.MassCfg(mass=held_asset_cfg.mass)],
             collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
         ),
         init_state=ArticulationCfg.InitialStateCfg(

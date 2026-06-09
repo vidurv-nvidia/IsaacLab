@@ -363,37 +363,20 @@ class CollisionBaseCfg:
     """
 
 
-@configclass
-class MassPropertiesCfg:
-    """Properties to define explicit mass properties of a rigid body.
+# MassPropertiesCfg is deprecated in favor of MassCfg so mass follows the same single-namespace
+# fragment shape as the other physics schemas (rigid body, collision, ...).
+def MassPropertiesCfg(**kwargs) -> list[MassFragment]:
+    """Deprecated factory returning the equivalent mass fragment list.
 
-    See :meth:`modify_mass_properties` for more information.
-
-    .. note::
-        If the values are None, they are not modified. This is useful when you want to set only a subset of
-        the properties and leave the rest as-is.
+    .. deprecated:: 4.6
+        Pass a fragment instead, e.g. ``mass_props=[MassCfg(...)]``. Removal in 5.0.
     """
-
-    # -- Class metadata (not dataclass fields) --
-    # ``mass`` / ``density`` write to ``physics:*`` (UsdPhysics standard attributes).
-    # The ``UsdPhysics.MassAPI`` schema is applied upstream by ``define_mass_properties``.
-    _usd_namespace: ClassVar[str | None] = "physics"
-    _usd_applied_schema: ClassVar[str | None] = None
-    _usd_field_exceptions: ClassVar[dict] = {}
-
-    mass: float | None = None
-    """The mass of the rigid body (in kg).
-
-    Note:
-        If non-zero, the mass is ignored and the density is used to compute the mass.
-    """
-
-    density: float | None = None
-    """The density of the rigid body (in kg/m^3).
-
-    The density indirectly defines the mass of the rigid body. It is generally computed using the collision
-    approximation of the body.
-    """
+    warnings.warn(
+        "'MassPropertiesCfg' is deprecated and will be removed in 5.0. Pass a fragment instead, e.g. [MassCfg(...)].",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return [MassCfg(**kwargs)]
 
 
 @configclass
