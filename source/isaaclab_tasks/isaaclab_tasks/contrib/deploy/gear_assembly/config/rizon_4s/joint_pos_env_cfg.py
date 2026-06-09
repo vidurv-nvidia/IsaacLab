@@ -296,7 +296,10 @@ class Rizon4sGearAssemblyEnvCfg(GearAssemblyEnvCfg):
                 articulation_props=sim_utils.ArticulationRootPropertiesCfg(
                     enabled_self_collisions=False, solver_position_iteration_count=4, solver_velocity_iteration_count=1
                 ),
-                collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
+                collision_props=[
+                    sim_utils.UsdPhysicsCollisionCfg(),
+                    sim_utils.PhysxCollisionCfg(contact_offset=0.005, rest_offset=0.0),
+                ],
             ),
             # Joint positions based on IK from center of distribution for randomized gear positions
             init_state=ArticulationCfg.InitialStateCfg(

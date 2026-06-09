@@ -24,7 +24,7 @@ from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.scene import InteractiveSceneCfg
-from isaaclab.sim import CollisionPropertiesCfg, RigidBodyPropertiesCfg, UsdFileCfg
+from isaaclab.sim import RigidBodyPropertiesCfg, UsdFileCfg, UsdPhysicsCollisionCfg
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.utils.configclass import configclass
 from isaaclab.utils.noise import UniformNoiseCfg as Unoise
@@ -73,7 +73,9 @@ class TableCfg(PresetCfg):
         ),
         spawn=sim_utils.CuboidCfg(
             size=(0.9, 1.3, 1.00),
-            collision_props=CollisionPropertiesCfg(),
+            collision_props=[
+                UsdPhysicsCollisionCfg(),
+            ],
             rigid_props=RigidBodyPropertiesCfg(rigid_body_enabled=True),
         ),
         actuators={},

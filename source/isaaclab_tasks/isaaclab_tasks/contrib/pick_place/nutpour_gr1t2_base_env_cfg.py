@@ -72,7 +72,10 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
             usd_path=f"{ISAACLAB_NUCLEUS_DIR}/Mimic/nut_pour_task/nut_pour_assets/sorting_bowl_yellow.usd",
             scale=(1.0, 1.0, 1.5),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(),
-            collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005),
+            collision_props=[
+                sim_utils.UsdPhysicsCollisionCfg(),
+                sim_utils.PhysxCollisionCfg(contact_offset=0.005),
+            ],
         ),
     )
 
@@ -93,7 +96,10 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
             usd_path=f"{ISAACLAB_NUCLEUS_DIR}/Mimic/nut_pour_task/nut_pour_assets/factory_m16_nut_green.usd",
             scale=(0.5, 0.5, 0.5),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(),
-            collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005),
+            collision_props=[
+                sim_utils.UsdPhysicsCollisionCfg(),
+                sim_utils.PhysxCollisionCfg(contact_offset=0.005),
+            ],
         ),
     )
 

@@ -177,7 +177,10 @@ class Extraction(DisassemblyTask):
                 fix_root_link=True,  # add this so the fixed asset is set to have a fixed base
             ),
             mass_props=sim_utils.MassPropertiesCfg(mass=fixed_asset_cfg.mass),
-            collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
+            collision_props=[
+                sim_utils.UsdPhysicsCollisionCfg(),
+                sim_utils.PhysxCollisionCfg(contact_offset=0.005, rest_offset=0.0),
+            ],
         ),
         init_state=ArticulationCfg.InitialStateCfg(
             # init_state=RigidObjectCfg.InitialStateCfg(
@@ -207,7 +210,10 @@ class Extraction(DisassemblyTask):
                 max_contact_impulse=1e32,
             ),
             mass_props=sim_utils.MassPropertiesCfg(mass=held_asset_cfg.mass),
-            collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
+            collision_props=[
+                sim_utils.UsdPhysicsCollisionCfg(),
+                sim_utils.PhysxCollisionCfg(contact_offset=0.005, rest_offset=0.0),
+            ],
         ),
         # init_state=ArticulationCfg.InitialStateCfg(
         init_state=RigidObjectCfg.InitialStateCfg(

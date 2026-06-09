@@ -15,7 +15,7 @@ from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import FrameTransformerCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
-from isaaclab.sim.schemas.schemas_cfg import CollisionPropertiesCfg, RigidBodyPropertiesCfg
+from isaaclab.sim.schemas.schemas_cfg import PhysxCollisionCfg, RigidBodyPropertiesCfg, UsdPhysicsCollisionCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.utils.configclass import configclass
@@ -269,7 +269,10 @@ class GalbotLeftArmCubeStackEnvCfg(StackEnvCfg):
             max_depenetration_velocity=5.0,
             disable_gravity=False,
         )
-        cube_collision_properties = CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0)
+        cube_collision_properties = [
+            UsdPhysicsCollisionCfg(),
+            PhysxCollisionCfg(contact_offset=0.005, rest_offset=0.0),
+        ]
 
         # Set each stacking cube deterministically
         self.scene.cube_1 = RigidObjectCfg(

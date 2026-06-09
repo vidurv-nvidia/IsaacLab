@@ -32,7 +32,9 @@ from .adr_curriculum import CurriculumCfg
 TABLE_SPAWN_CFG = sim_utils.CuboidCfg(
     size=(0.8, 1.5, 0.04),
     rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
-    collision_props=sim_utils.CollisionPropertiesCfg(),
+    collision_props=[
+        sim_utils.UsdPhysicsCollisionCfg(),
+    ],
     # trick: we let visualizer's color to show the table with success coloring
     visible=False,
 )
@@ -40,7 +42,10 @@ TABLE_SPAWN_CFG = sim_utils.CuboidCfg(
 
 OBJECT_PHYSICS = {
     "physics_material": RigidBodyMaterialCfg(static_friction=0.5),
-    "collision_props": sim_utils.CollisionPropertiesCfg(contact_offset=0.002),
+    "collision_props": [
+        sim_utils.UsdPhysicsCollisionCfg(),
+        sim_utils.PhysxCollisionCfg(contact_offset=0.002),
+    ],
 }
 
 
@@ -70,7 +75,9 @@ class ObjectCfg(PresetCfg):
             solver_velocity_iteration_count=0,
             disable_gravity=False,
         ),
-        collision_props=sim_utils.CollisionPropertiesCfg(),
+        collision_props=[
+            sim_utils.UsdPhysicsCollisionCfg(),
+        ],
         mass_props=sim_utils.MassPropertiesCfg(mass=0.2),
     )
     cube = sim_utils.CuboidCfg(
@@ -81,7 +88,9 @@ class ObjectCfg(PresetCfg):
             solver_velocity_iteration_count=0,
             disable_gravity=False,
         ),
-        collision_props=sim_utils.CollisionPropertiesCfg(),
+        collision_props=[
+            sim_utils.UsdPhysicsCollisionCfg(),
+        ],
         mass_props=sim_utils.MassPropertiesCfg(mass=0.2),
     )
     default = shapes

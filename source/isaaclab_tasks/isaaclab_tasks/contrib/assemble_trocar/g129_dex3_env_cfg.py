@@ -103,11 +103,10 @@ class AssembleTrocarSceneCfg(InteractiveSceneCfg):
         prim_path="/World/envs/env_.*/trocar_1",
         spawn=UsdFileCfg(
             usd_path=f"{USD_ROOT}/Assets/Trocar002/Trocar002-xform-wo.usd",
-            collision_props=sim_utils.CollisionPropertiesCfg(
-                collision_enabled=True,
-                contact_offset=0.001,
-                rest_offset=-0.001,
-            ),
+            collision_props=[
+                sim_utils.UsdPhysicsCollisionCfg(collision_enabled=True),
+                sim_utils.PhysxCollisionCfg(contact_offset=0.001, rest_offset=-0.001),
+            ],
         ),
         init_state=RigidObjectCfg.InitialStateCfg(
             pos=[-1.60202, 1.91362, 0.87183],

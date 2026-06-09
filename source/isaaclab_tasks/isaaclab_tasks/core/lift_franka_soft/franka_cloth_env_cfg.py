@@ -118,7 +118,9 @@ class FrankaClothSceneCfg(_FrankaSoftSceneCfg):
         init_state=AssetBaseCfg.InitialStateCfg(pos=(0.45, 0.0, 0.04)),
         spawn=sim_utils.CuboidCfg(
             size=(0.03, 0.01, 0.08),
-            collision_props=sim_utils.CollisionPropertiesCfg(),
+            collision_props=[
+                sim_utils.UsdPhysicsCollisionCfg(),
+            ],
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.2, 0.25)),
         ),
     )

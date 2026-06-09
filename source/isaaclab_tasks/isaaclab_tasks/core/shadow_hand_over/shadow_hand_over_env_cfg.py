@@ -209,7 +209,9 @@ class ObjectCfg(PresetCfg):
                 stabilization_threshold=0.0025,
                 max_depenetration_velocity=1000.0,
             ),
-            collision_props=sim_utils.CollisionPropertiesCfg(),
+            collision_props=[
+                sim_utils.UsdPhysicsCollisionCfg(),
+            ],
             mass_props=sim_utils.MassPropertiesCfg(density=500.0),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, -0.39, 0.54), rot=(0.0, 0.0, 0.0, 1.0)),
@@ -224,7 +226,9 @@ class ObjectCfg(PresetCfg):
                 disable_gravity=False,
                 enable_gyroscopic_forces=True,
             ),
-            collision_props=sim_utils.CollisionPropertiesCfg(),
+            collision_props=[
+                sim_utils.UsdPhysicsCollisionCfg(),
+            ],
             mass_props=sim_utils.MassPropertiesCfg(density=500.0),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, -0.39, 0.54), rot=(0.0, 0.0, 0.0, 1.0)),

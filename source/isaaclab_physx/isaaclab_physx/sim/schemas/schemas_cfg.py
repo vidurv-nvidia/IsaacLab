@@ -17,6 +17,7 @@ from isaaclab.sim.schemas.schemas_cfg import (
     MeshCollisionBaseCfg,
     RigidBodyBaseCfg,
     RigidBodyFragment,
+    UsdPhysicsCollisionCfg,
 )
 from isaaclab.utils.configclass import configclass
 
@@ -565,27 +566,30 @@ class ArticulationRootPropertiesCfg(PhysxArticulationRootPropertiesCfg):
         super().__post_init__()
 
 
-@configclass
-class CollisionPropertiesCfg(PhysxCollisionPropertiesCfg):
-    """Deprecated: use :class:`PhysxCollisionPropertiesCfg` or :class:`~isaaclab.sim.schemas.CollisionBaseCfg`.
+# USD-namespaced collision fields owned by :class:`~isaaclab.sim.schemas.UsdPhysicsCollisionCfg`.
+# Every other legacy ``CollisionPropertiesCfg`` kwarg (``contact_offset``, ``rest_offset``,
+# ``torsional_patch_radius``, ``min_torsional_patch_radius``) lives on :class:`PhysxCollisionCfg`.
+_USD_COLLISION_FIELDS = ("collision_enabled",)
 
-    .. deprecated:: 4.6.23
-        ``CollisionPropertiesCfg`` has been split into
-        :class:`~isaaclab.sim.schemas.CollisionBaseCfg` (solver-common) and
-        :class:`PhysxCollisionPropertiesCfg` (PhysX-specific) and relocated to
-        :mod:`isaaclab_physx.sim.schemas`. This alias preserves backwards compatibility and is
-        scheduled for removal in 5.0.
+
+def CollisionPropertiesCfg(**kwargs) -> list[CollisionFragment]:
+    """Deprecated factory returning the equivalent collision fragment list.
+
+    .. deprecated:: 4.6
+        Pass a list of fragments instead, e.g.
+        ``collision_props=[UsdPhysicsCollisionCfg(...), PhysxCollisionCfg(...)]``. Removal in 5.0.
     """
-
-    def __post_init__(self):
-        warnings.warn(
-            "'CollisionPropertiesCfg' is deprecated and will be removed in 5.0. Use"
-            " 'isaaclab_physx.sim.schemas.PhysxCollisionPropertiesCfg' for PhysX properties, or"
-            " 'isaaclab.sim.schemas.CollisionBaseCfg' for solver-common properties only.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__post_init__()
+    warnings.warn(
+        "'CollisionPropertiesCfg' is deprecated and will be removed in 5.0. Pass a list of"
+        " fragments instead, e.g. [UsdPhysicsCollisionCfg(...), PhysxCollisionCfg(...)].",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    usd = {k: kwargs.pop(k) for k in _USD_COLLISION_FIELDS if k in kwargs}
+    frags: list[CollisionFragment] = [UsdPhysicsCollisionCfg(**usd)]
+    if kwargs:
+        frags.append(PhysxCollisionCfg(**kwargs))
+    return frags
 
 
 @configclass

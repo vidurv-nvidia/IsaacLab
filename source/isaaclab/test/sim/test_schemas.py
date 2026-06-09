@@ -76,7 +76,7 @@ def setup_simulation():
         sleep_threshold=1.0,
         stabilization_threshold=6.0,
     )
-    collision_cfg = schemas.CollisionPropertiesCfg(
+    collision_cfg = PhysxCollisionPropertiesCfg(
         collision_enabled=True,
         contact_offset=0.05,
         rest_offset=0.001,
