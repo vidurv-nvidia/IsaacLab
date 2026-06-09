@@ -15,6 +15,8 @@ Reference:
 
 """
 
+from isaaclab_physx.sim.schemas import PhysxFixedTendonCfg
+
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
@@ -42,7 +44,7 @@ SHADOW_HAND_CFG = ArticulationCfg(
         ),
         # collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
         joint_drive_props=sim_utils.JointDrivePropertiesCfg(drive_type="force"),
-        fixed_tendons_props=sim_utils.FixedTendonPropertiesCfg(limit_stiffness=30.0, damping=0.1),
+        fixed_tendons_props=[PhysxFixedTendonCfg(limit_stiffness=30.0, damping=0.1)],
     ),
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(0.0, 0.0, 0.5),

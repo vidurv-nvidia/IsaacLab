@@ -25,6 +25,7 @@ from isaaclab_physx.sim.schemas import (
 from isaaclab_physx.sim.schemas import (
     PhysxArticulationRootPropertiesCfg,
     PhysxCollisionPropertiesCfg,
+    PhysxFixedTendonPropertiesCfg,
     PhysxJointDrivePropertiesCfg,
     PhysxRigidBodyPropertiesCfg,
 )
@@ -852,7 +853,7 @@ def test_multi_instance_schema_detection_on_tendon_joints(setup_simulation):
     assert result is True, "Tendon root joint should NOT be skipped"
 
     # -- 3) modify_fixed_tendon_properties should detect multi-instance root schema
-    tendon_cfg = schemas.FixedTendonPropertiesCfg(stiffness=10.0, damping=0.1)
+    tendon_cfg = PhysxFixedTendonPropertiesCfg(stiffness=10.0, damping=0.1)
     result = _modify_fixed_tendon(joint_prim.GetPrimPath().pathString, tendon_cfg)
     assert result is True, "Prim with PhysxTendonAxisRootAPI:inst0 should be detected"
 

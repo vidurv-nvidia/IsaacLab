@@ -5,6 +5,7 @@
 
 from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg
 from isaaclab_physx.physics import PhysxCfg
+from isaaclab_physx.sim.schemas import PhysxFixedTendonCfg
 
 import isaaclab.envs.mdp as mdp
 import isaaclab.sim as sim_utils
@@ -159,7 +160,7 @@ class ShadowHandRobotCfg(PresetCfg):
             ),
             articulation_props=sim_utils.ArticulationRootPropertiesCfg(enabled_self_collisions=True),
             joint_drive_props=sim_utils.JointDrivePropertiesCfg(drive_type="force", ensure_drives_exist=True),
-            fixed_tendons_props=sim_utils.FixedTendonPropertiesCfg(damping=0.1),
+            fixed_tendons_props=[PhysxFixedTendonCfg(damping=0.1)],
         ),
         init_state=ArticulationCfg.InitialStateCfg(
             pos=(0.0, 0.0, 0.5),

@@ -897,27 +897,6 @@ class PhysxFixedTendonPropertiesCfg:
 
 
 @configclass
-class FixedTendonPropertiesCfg(PhysxFixedTendonPropertiesCfg):
-    """Deprecated: use :class:`PhysxFixedTendonPropertiesCfg`.
-
-    .. deprecated:: 4.6.x
-        ``FixedTendonPropertiesCfg`` was relocated to
-        :mod:`isaaclab_physx.sim.schemas` and renamed to
-        :class:`PhysxFixedTendonPropertiesCfg`. The legacy name remains as a
-        deprecation alias and is scheduled for removal in 5.0.
-    """
-
-    def __post_init__(self):
-        warnings.warn(
-            "'FixedTendonPropertiesCfg' is deprecated and will be removed in 5.0. Use"
-            " 'isaaclab_physx.sim.schemas.PhysxFixedTendonPropertiesCfg' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__post_init__()
-
-
-@configclass
 class PhysxSpatialTendonPropertiesCfg:
     """PhysX spatial-tendon properties for an articulation.
 
@@ -952,27 +931,6 @@ class PhysxSpatialTendonPropertiesCfg:
     It defines an amount to be added to the accumulated length computed for the tendon. This allows the application
     to actuate the tendon by shortening or lengthening it.
     """
-
-
-@configclass
-class SpatialTendonPropertiesCfg(PhysxSpatialTendonPropertiesCfg):
-    """Deprecated: use :class:`PhysxSpatialTendonPropertiesCfg`.
-
-    .. deprecated:: 4.6.x
-        ``SpatialTendonPropertiesCfg`` was relocated to
-        :mod:`isaaclab_physx.sim.schemas` and renamed to
-        :class:`PhysxSpatialTendonPropertiesCfg`. The legacy name remains as a
-        deprecation alias and is scheduled for removal in 5.0.
-    """
-
-    def __post_init__(self):
-        warnings.warn(
-            "'SpatialTendonPropertiesCfg' is deprecated and will be removed in 5.0. Use"
-            " 'isaaclab_physx.sim.schemas.PhysxSpatialTendonPropertiesCfg' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__post_init__()
 
 
 @configclass
@@ -1059,3 +1017,33 @@ class PhysxSpatialTendonCfg(SpatialTendonFragment):
     It defines an amount to be added to the accumulated length computed for the tendon. This allows the application
     to actuate the tendon by shortening or lengthening it.
     """
+
+
+def FixedTendonPropertiesCfg(**kwargs) -> list:
+    """Deprecated factory returning the equivalent fixed-tendon fragment list.
+
+    .. deprecated:: 4.6
+        Pass a fragment instead, e.g. ``fixed_tendons_props=[PhysxFixedTendonCfg(...)]``. Removal in 5.0.
+    """
+    warnings.warn(
+        "'FixedTendonPropertiesCfg' is deprecated and will be removed in 5.0. Pass a fragment"
+        " instead, e.g. [PhysxFixedTendonCfg(...)].",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return [PhysxFixedTendonCfg(**kwargs)]
+
+
+def SpatialTendonPropertiesCfg(**kwargs) -> list:
+    """Deprecated factory returning the equivalent spatial-tendon fragment list.
+
+    .. deprecated:: 4.6
+        Pass a fragment instead, e.g. ``spatial_tendons_props=[PhysxSpatialTendonCfg(...)]``. Removal in 5.0.
+    """
+    warnings.warn(
+        "'SpatialTendonPropertiesCfg' is deprecated and will be removed in 5.0. Pass a fragment"
+        " instead, e.g. [PhysxSpatialTendonCfg(...)].",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return [PhysxSpatialTendonCfg(**kwargs)]
