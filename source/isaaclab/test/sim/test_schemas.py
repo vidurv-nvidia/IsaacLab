@@ -50,7 +50,7 @@ def setup_simulation():
     # Load kit helper
     sim = SimulationContext(SimulationCfg(dt=dt))
     # Set some default values for test
-    arti_cfg = schemas.ArticulationRootPropertiesCfg(
+    arti_cfg = PhysxArticulationRootPropertiesCfg(
         enabled_self_collisions=False,
         articulation_enabled=True,
         solver_position_iteration_count=4,

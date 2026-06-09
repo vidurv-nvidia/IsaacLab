@@ -14,6 +14,8 @@ The following configurations are available:
 Reference: https://www.flexiv.com/product/rizon
 """
 
+from isaaclab_physx.sim.schemas import PhysxArticulationCfg
+
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
@@ -30,11 +32,13 @@ FLEXIV_RIZON4S_CFG = ArticulationCfg(
             disable_gravity=True,
             max_depenetration_velocity=5.0,
         ),
-        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=False,
-            solver_position_iteration_count=16,
-            solver_velocity_iteration_count=1,
-        ),
+        articulation_props=[
+            PhysxArticulationCfg(
+                enabled_self_collisions=False,
+                solver_position_iteration_count=16,
+                solver_velocity_iteration_count=1,
+            )
+        ],
         activate_contact_sensors=False,
     ),
     init_state=ArticulationCfg.InitialStateCfg(
@@ -90,11 +94,13 @@ FLEXIV_RIZON4S_GRAV_GRIPPER_CFG = ArticulationCfg(
             disable_gravity=False,
             max_depenetration_velocity=5.0,
         ),
-        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=False,
-            solver_position_iteration_count=16,
-            solver_velocity_iteration_count=1,
-        ),
+        articulation_props=[
+            PhysxArticulationCfg(
+                enabled_self_collisions=False,
+                solver_position_iteration_count=16,
+                solver_velocity_iteration_count=1,
+            )
+        ],
         activate_contact_sensors=False,
     ),
     init_state=ArticulationCfg.InitialStateCfg(

@@ -15,6 +15,8 @@ The following configuration parameters are available:
 Reference: https://github.com/ros-industrial/universal_robot
 """
 
+from isaaclab_physx.sim.schemas import PhysxArticulationCfg
+
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
@@ -60,9 +62,11 @@ UR10e_CFG = ArticulationCfg(
             disable_gravity=True,
             max_depenetration_velocity=5.0,
         ),
-        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=False, solver_position_iteration_count=16, solver_velocity_iteration_count=1
-        ),
+        articulation_props=[
+            PhysxArticulationCfg(
+                enabled_self_collisions=False, solver_position_iteration_count=16, solver_velocity_iteration_count=1
+            )
+        ],
         activate_contact_sensors=False,
     ),
     init_state=ArticulationCfg.InitialStateCfg(

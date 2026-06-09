@@ -6,6 +6,7 @@
 import math
 
 import torch
+from isaaclab_physx.sim.schemas import PhysxArticulationCfg
 
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
@@ -331,9 +332,13 @@ class UR10e2F140GearAssemblyEnvCfg(UR10eGearAssemblyEnvCfg):
                     solver_velocity_iteration_count=1,
                     max_contact_impulse=1e32,
                 ),
-                articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-                    enabled_self_collisions=False, solver_position_iteration_count=4, solver_velocity_iteration_count=1
-                ),
+                articulation_props=[
+                    PhysxArticulationCfg(
+                        enabled_self_collisions=False,
+                        solver_position_iteration_count=4,
+                        solver_velocity_iteration_count=1,
+                    )
+                ],
                 collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
             ),
             # Joint positions based on IK from center of distribution for randomized gear positions
@@ -420,9 +425,13 @@ class UR10e2F85GearAssemblyEnvCfg(UR10eGearAssemblyEnvCfg):
                     solver_velocity_iteration_count=1,
                     max_contact_impulse=1e32,
                 ),
-                articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-                    enabled_self_collisions=False, solver_position_iteration_count=4, solver_velocity_iteration_count=1
-                ),
+                articulation_props=[
+                    PhysxArticulationCfg(
+                        enabled_self_collisions=False,
+                        solver_position_iteration_count=4,
+                        solver_velocity_iteration_count=1,
+                    )
+                ],
                 collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
             ),
             # Joint positions based on IK from center of distribution for randomized gear positions

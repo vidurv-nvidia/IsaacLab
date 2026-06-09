@@ -14,6 +14,8 @@ The following configurations are available:
 Reference: https://github.com/frankaemika/franka_ros
 """
 
+from isaaclab_physx.sim.schemas import PhysxArticulationCfg
+
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
@@ -31,9 +33,11 @@ FRANKA_PANDA_CFG = ArticulationCfg(
             disable_gravity=False,
             max_depenetration_velocity=5.0,
         ),
-        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=True, solver_position_iteration_count=8, solver_velocity_iteration_count=0
-        ),
+        articulation_props=[
+            PhysxArticulationCfg(
+                enabled_self_collisions=True, solver_position_iteration_count=8, solver_velocity_iteration_count=0
+            )
+        ],
         # collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
     ),
     init_state=ArticulationCfg.InitialStateCfg(

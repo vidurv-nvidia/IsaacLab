@@ -529,33 +529,30 @@ class PhysxArticulationCfg(ArticulationRootFragment):
     stabilization [m²/s²]."""
 
 
-@configclass
-class ArticulationRootPropertiesCfg(PhysxArticulationRootPropertiesCfg):
-    """Deprecated: use :class:`PhysxArticulationRootPropertiesCfg` or the solver-common base class.
+def ArticulationRootPropertiesCfg(**kwargs) -> list[ArticulationRootFragment]:
+    """Deprecated factory returning the equivalent articulation-root fragment list.
 
-    Use :class:`PhysxArticulationRootPropertiesCfg` for PhysX-specific properties or
-    :class:`~isaaclab.sim.schemas.ArticulationRootBaseCfg` for solver-common properties only.
+    All legacy ``ArticulationRootPropertiesCfg`` solver fields map onto
+    :class:`PhysxArticulationCfg`. ``fix_root_link`` is a spawner/writer flag (it materializes a
+    ``UsdPhysics.FixedJoint`` between the world frame and the root link), not a USD fragment field,
+    so it is dropped here and must be set on the spawner cfg that owns the prim instead
+    (e.g. :attr:`isaaclab.sim.spawners.from_files.UsdFileCfg.fix_root_link`, or passed to
+    :func:`~isaaclab.sim.schemas.apply_articulation_root_properties` via ``fix_root_link=``).
 
-    .. deprecated:: 4.6.24
-        ``ArticulationRootPropertiesCfg`` has been split into
-        :class:`~isaaclab.sim.schemas.ArticulationRootBaseCfg` (solver-common
-        ``fix_root_link`` and the PhysX-namespaced but IL-Newton-consumed
-        ``articulation_enabled``) and
-        :class:`PhysxArticulationRootPropertiesCfg` (PhysX-specific
-        self-collisions, TGS solver iter / sleep / stabilization thresholds)
-        and relocated to :mod:`isaaclab_physx.sim.schemas`. This alias preserves
-        backwards compatibility and is scheduled for removal in 5.0.
+    .. deprecated:: 4.6
+        Pass a list of fragments, e.g. ``articulation_props=[PhysxArticulationCfg(...)]``.
+        ``fix_root_link`` is now a spawner flag, not a fragment field. Removal in 5.0.
     """
-
-    def __post_init__(self):
-        warnings.warn(
-            "'ArticulationRootPropertiesCfg' is deprecated and will be removed in 5.0. Use"
-            " 'isaaclab_physx.sim.schemas.PhysxArticulationRootPropertiesCfg' for PhysX properties, or"
-            " 'isaaclab.sim.schemas.ArticulationRootBaseCfg' for solver-common properties only.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__post_init__()
+    warnings.warn(
+        "'ArticulationRootPropertiesCfg' is deprecated and will be removed in 5.0. Pass a list of"
+        " fragments, e.g. [PhysxArticulationCfg(...)]. 'fix_root_link' is now a spawner-level flag"
+        " (set it on the spawner cfg, e.g. UsdFileCfg(fix_root_link=...)).",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    kwargs.pop("fix_root_link", None)  # non-USD writer flag, handled at the spawner
+    frags: list[ArticulationRootFragment] = [PhysxArticulationCfg(**kwargs)] if kwargs else []
+    return frags
 
 
 @configclass

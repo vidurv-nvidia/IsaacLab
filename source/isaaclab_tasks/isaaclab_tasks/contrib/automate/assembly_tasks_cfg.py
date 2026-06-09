@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+from isaaclab_physx.sim.schemas import PhysxArticulationCfg
+
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, RigidObjectCfg
 from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
@@ -208,6 +210,7 @@ class Insertion(AssemblyTask):
         # fixed_asset: RigidObjectCfg = RigidObjectCfg(
         prim_path="/World/envs/env_.*/FixedAsset",
         spawn=sim_utils.UsdFileCfg(
+            fix_root_link=True,  # add this so the fixed asset is set to have a fixed base
             usd_path=f"{assembly_dir}{fixed_asset_cfg.usd_path}",
             activate_contact_sensors=True,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
@@ -222,10 +225,11 @@ class Insertion(AssemblyTask):
                 solver_velocity_iteration_count=1,
                 max_contact_impulse=1e32,
             ),
-            articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-                enabled_self_collisions=True,
-                fix_root_link=True,  # add this so the fixed asset is set to have a fixed base
-            ),
+            articulation_props=[
+                PhysxArticulationCfg(
+                    enabled_self_collisions=True,
+                )
+            ],
             mass_props=sim_utils.MassPropertiesCfg(mass=fixed_asset_cfg.mass),
             collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
         ),

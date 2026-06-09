@@ -12,6 +12,8 @@ The following configurations are available:
 
 """
 
+from isaaclab_physx.sim.schemas import PhysxArticulationCfg
+
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
@@ -29,11 +31,13 @@ AGIBOT_A2D_CFG = ArticulationCfg(
             disable_gravity=False,
             max_depenetration_velocity=5.0,
         ),
-        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=False,
-            solver_position_iteration_count=8,
-            solver_velocity_iteration_count=0,
-        ),
+        articulation_props=[
+            PhysxArticulationCfg(
+                enabled_self_collisions=False,
+                solver_position_iteration_count=8,
+                solver_velocity_iteration_count=0,
+            )
+        ],
     ),
     init_state=ArticulationCfg.InitialStateCfg(
         joint_pos={

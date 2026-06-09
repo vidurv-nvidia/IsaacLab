@@ -12,6 +12,8 @@ The following configuration parameters are available:
 Reference: https://github.com/RethinkRobotics/sawyer_robot
 """
 
+from isaaclab_physx.sim.schemas import PhysxArticulationCfg
+
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
@@ -28,9 +30,11 @@ SAWYER_CFG = ArticulationCfg(
             disable_gravity=False,
             max_depenetration_velocity=5.0,
         ),
-        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=True, solver_position_iteration_count=8, solver_velocity_iteration_count=0
-        ),
+        articulation_props=[
+            PhysxArticulationCfg(
+                enabled_self_collisions=True, solver_position_iteration_count=8, solver_velocity_iteration_count=0
+            )
+        ],
         activate_contact_sensors=False,
     ),
     init_state=ArticulationCfg.InitialStateCfg(
