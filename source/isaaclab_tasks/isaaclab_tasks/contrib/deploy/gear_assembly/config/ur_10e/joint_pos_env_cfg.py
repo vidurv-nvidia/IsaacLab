@@ -6,6 +6,7 @@
 import math
 
 import torch
+from isaaclab_physx.sim.schemas import PhysxCollisionCfg
 
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
@@ -336,7 +337,7 @@ class UR10e2F140GearAssemblyEnvCfg(UR10eGearAssemblyEnvCfg):
                 ),
                 collision_props=[
                     sim_utils.UsdPhysicsCollisionCfg(),
-                    sim_utils.PhysxCollisionCfg(contact_offset=0.005, rest_offset=0.0),
+                    PhysxCollisionCfg(contact_offset=0.005, rest_offset=0.0),
                 ],
             ),
             # Joint positions based on IK from center of distribution for randomized gear positions
@@ -428,7 +429,7 @@ class UR10e2F85GearAssemblyEnvCfg(UR10eGearAssemblyEnvCfg):
                 ),
                 collision_props=[
                     sim_utils.UsdPhysicsCollisionCfg(),
-                    sim_utils.PhysxCollisionCfg(contact_offset=0.005, rest_offset=0.0),
+                    PhysxCollisionCfg(contact_offset=0.005, rest_offset=0.0),
                 ],
             ),
             # Joint positions based on IK from center of distribution for randomized gear positions

@@ -15,6 +15,8 @@ except ImportError:
     _TELEOP_AVAILABLE = False
     logging.getLogger(__name__).warning("isaaclab_teleop is not installed. XR teleoperation features will be disabled.")
 
+from isaaclab_physx.sim.schemas import PhysxCollisionCfg
+
 import isaaclab.envs.mdp as base_mdp
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
@@ -74,7 +76,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
             rigid_props=sim_utils.RigidBodyPropertiesCfg(),
             collision_props=[
                 sim_utils.UsdPhysicsCollisionCfg(),
-                sim_utils.PhysxCollisionCfg(contact_offset=0.005),
+                PhysxCollisionCfg(contact_offset=0.005),
             ],
         ),
     )
@@ -98,7 +100,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
             rigid_props=sim_utils.RigidBodyPropertiesCfg(),
             collision_props=[
                 sim_utils.UsdPhysicsCollisionCfg(),
-                sim_utils.PhysxCollisionCfg(contact_offset=0.005),
+                PhysxCollisionCfg(contact_offset=0.005),
             ],
         ),
     )

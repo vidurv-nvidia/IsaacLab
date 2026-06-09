@@ -40,7 +40,6 @@ _PHYSX_FORWARDS_SCHEMAS = frozenset(
         "PhysxRigidBodyPropertiesCfg",
         "PhysxJointDrivePropertiesCfg",
         "CollisionPropertiesCfg",
-        "PhysxCollisionCfg",
         "PhysxCollisionPropertiesCfg",
         "DeformableBodyPropertiesCfg",
         "PhysxDeformableCollisionPropertiesCfg",

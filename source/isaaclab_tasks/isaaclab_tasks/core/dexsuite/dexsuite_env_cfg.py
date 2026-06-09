@@ -7,6 +7,7 @@ from dataclasses import MISSING
 
 from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg, NewtonCollisionPipelineCfg, NewtonShapeCfg
 from isaaclab_physx.physics import PhysxCfg
+from isaaclab_physx.sim.schemas import PhysxCollisionCfg
 
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
@@ -44,7 +45,7 @@ OBJECT_PHYSICS = {
     "physics_material": RigidBodyMaterialCfg(static_friction=0.5),
     "collision_props": [
         sim_utils.UsdPhysicsCollisionCfg(),
-        sim_utils.PhysxCollisionCfg(contact_offset=0.002),
+        PhysxCollisionCfg(contact_offset=0.002),
     ],
 }
 

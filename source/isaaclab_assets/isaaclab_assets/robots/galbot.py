@@ -12,6 +12,8 @@ The following configuration parameters are available:
 
 """
 
+from isaaclab_physx.sim.schemas import PhysxCollisionCfg
+
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
@@ -32,7 +34,7 @@ GALBOT_ONE_CHARLIE_CFG = ArticulationCfg(
         ),
         collision_props=[
             sim_utils.UsdPhysicsCollisionCfg(),
-            sim_utils.PhysxCollisionCfg(contact_offset=0.005, rest_offset=0.0),
+            PhysxCollisionCfg(contact_offset=0.005, rest_offset=0.0),
         ],
         activate_contact_sensors=True,
     ),

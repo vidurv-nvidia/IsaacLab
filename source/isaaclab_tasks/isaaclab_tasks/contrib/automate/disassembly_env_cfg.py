@@ -5,6 +5,7 @@
 
 
 from isaaclab_physx.physics import PhysxCfg
+from isaaclab_physx.sim.schemas import PhysxCollisionCfg
 
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
@@ -153,7 +154,7 @@ class DisassemblyEnvCfg(DirectRLEnvCfg):
             ),
             collision_props=[
                 sim_utils.UsdPhysicsCollisionCfg(),
-                sim_utils.PhysxCollisionCfg(contact_offset=0.005, rest_offset=0.0),
+                PhysxCollisionCfg(contact_offset=0.005, rest_offset=0.0),
             ],
         ),
         init_state=ArticulationCfg.InitialStateCfg(

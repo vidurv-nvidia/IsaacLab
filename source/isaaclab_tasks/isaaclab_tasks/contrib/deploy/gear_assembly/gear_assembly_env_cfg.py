@@ -7,6 +7,7 @@ import os
 from dataclasses import MISSING
 
 from isaaclab_physx.physics import PhysxCfg
+from isaaclab_physx.sim.schemas import PhysxCollisionCfg
 
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
@@ -73,7 +74,7 @@ class GearAssemblySceneCfg(InteractiveSceneCfg):
             mass_props=sim_utils.MassPropertiesCfg(mass=None),
             collision_props=[
                 sim_utils.UsdPhysicsCollisionCfg(),
-                sim_utils.PhysxCollisionCfg(contact_offset=0.02, rest_offset=0.0),
+                PhysxCollisionCfg(contact_offset=0.02, rest_offset=0.0),
             ],
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(-1.0200, 0.2100, -0.1), rot=(0.0, 0.0, 0.70711, 0.70711)),
@@ -101,7 +102,7 @@ class GearAssemblySceneCfg(InteractiveSceneCfg):
             mass_props=sim_utils.MassPropertiesCfg(mass=None),
             collision_props=[
                 sim_utils.UsdPhysicsCollisionCfg(),
-                sim_utils.PhysxCollisionCfg(contact_offset=0.02, rest_offset=0.0),
+                PhysxCollisionCfg(contact_offset=0.02, rest_offset=0.0),
             ],
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(-1.0200, 0.2100, -0.1), rot=(0.0, 0.0, 0.70711, 0.70711)),
@@ -129,7 +130,7 @@ class GearAssemblySceneCfg(InteractiveSceneCfg):
             mass_props=sim_utils.MassPropertiesCfg(mass=None),
             collision_props=[
                 sim_utils.UsdPhysicsCollisionCfg(),
-                sim_utils.PhysxCollisionCfg(contact_offset=0.02, rest_offset=0.0),
+                PhysxCollisionCfg(contact_offset=0.02, rest_offset=0.0),
             ],
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(-1.0200, 0.2100, -0.1), rot=(0.0, 0.0, 0.70711, 0.70711)),
@@ -157,7 +158,7 @@ class GearAssemblySceneCfg(InteractiveSceneCfg):
             mass_props=sim_utils.MassPropertiesCfg(mass=None),
             collision_props=[
                 sim_utils.UsdPhysicsCollisionCfg(),
-                sim_utils.PhysxCollisionCfg(contact_offset=0.02, rest_offset=0.0),
+                PhysxCollisionCfg(contact_offset=0.02, rest_offset=0.0),
             ],
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(-1.0200, 0.2100, -0.1), rot=(0.0, 0.0, 0.70711, 0.70711)),

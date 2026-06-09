@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from isaaclab_physx.physics import PhysxCfg
+from isaaclab_physx.sim.schemas import PhysxCollisionCfg
 
 import isaaclab.envs.mdp as base_mdp
 import isaaclab.sim as sim_utils
@@ -105,7 +106,7 @@ class AssembleTrocarSceneCfg(InteractiveSceneCfg):
             usd_path=f"{USD_ROOT}/Assets/Trocar002/Trocar002-xform-wo.usd",
             collision_props=[
                 sim_utils.UsdPhysicsCollisionCfg(collision_enabled=True),
-                sim_utils.PhysxCollisionCfg(contact_offset=0.001, rest_offset=-0.001),
+                PhysxCollisionCfg(contact_offset=0.001, rest_offset=-0.001),
             ],
         ),
         init_state=RigidObjectCfg.InitialStateCfg(

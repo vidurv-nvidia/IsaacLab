@@ -5,6 +5,7 @@
 
 
 from isaaclab_physx.assets import SurfaceGripperCfg
+from isaaclab_physx.sim.schemas import PhysxCollisionCfg
 from isaaclab_teleop import IsaacTeleopCfg
 
 from isaaclab.assets import RigidObjectCfg
@@ -15,7 +16,7 @@ from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import FrameTransformerCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
-from isaaclab.sim.schemas.schemas_cfg import PhysxCollisionCfg, RigidBodyPropertiesCfg, UsdPhysicsCollisionCfg
+from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg, UsdPhysicsCollisionCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.utils.configclass import configclass
