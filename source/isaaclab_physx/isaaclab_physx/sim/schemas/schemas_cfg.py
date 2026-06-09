@@ -17,6 +17,7 @@ from isaaclab.sim.schemas.schemas_cfg import (
     MeshCollisionFragment,
     RigidBodyBaseCfg,
     RigidBodyFragment,
+    UsdPhysicsMeshCollisionCfg,
 )
 from isaaclab.utils.configclass import configclass
 
@@ -902,121 +903,140 @@ class PhysxSDFMeshPropertiesCfg(MeshCollisionBaseCfg):
     """
 
 
-@configclass
-class MeshCollisionPropertiesCfg(MeshCollisionBaseCfg):
-    """Deprecated: use :class:`~isaaclab.sim.schemas.MeshCollisionBaseCfg`.
+# Deprecated mesh-collision factories. Each legacy cfg name now returns the equivalent
+# mesh-collision fragment list: one core ``UsdPhysicsMeshCollisionCfg`` carrying the
+# ``physics:approximation`` token, plus -- for the PhysX cooking variants -- one
+# ``Physx*Cfg`` cooking fragment when any cooking tuning field was supplied. The cooking
+# fragment's default ``mesh_approximation_name`` supplies the token when the caller does
+# not override it explicitly.
+
+
+def _split_mesh_collision_kwargs(
+    cooking_cls: type[MeshCollisionFragment], kwargs: dict
+) -> tuple[UsdPhysicsMeshCollisionCfg, MeshCollisionFragment | None]:
+    """Split legacy mesh-collision kwargs into a core USD fragment and an optional cooking fragment.
+
+    ``mesh_approximation_name`` routes to the core :class:`UsdPhysicsMeshCollisionCfg`
+    (defaulting to ``cooking_cls``'s token); every remaining kwarg is a cooking tuning
+    field that produces a ``cooking_cls`` fragment only when at least one is supplied.
+    """
+    default_token = cooking_cls().mesh_approximation_name
+    token = kwargs.pop("mesh_approximation_name", default_token)
+    usd = UsdPhysicsMeshCollisionCfg(mesh_approximation_name=token)
+    cooking = cooking_cls(mesh_approximation_name=token, **kwargs) if kwargs else None
+    return usd, cooking
+
+
+def MeshCollisionPropertiesCfg(**kwargs) -> list[MeshCollisionFragment]:
+    """Deprecated factory returning the equivalent mesh-collision fragment list.
 
     .. deprecated:: 4.6.25
-        ``MeshCollisionPropertiesCfg`` was the flat (non-leaf) base of the legacy
-        mesh-collision cfg family. It has been renamed to
-        :class:`~isaaclab.sim.schemas.MeshCollisionBaseCfg` to match the rest of the
-        consumption-gated split. This alias preserves backwards compatibility and is
-        scheduled for removal in 5.0.
+        Pass a list of fragments instead, e.g.
+        ``mesh_collision_props=[UsdPhysicsMeshCollisionCfg(mesh_approximation_name=...)]``.
+        Removal in 5.0.
     """
-
-    def __post_init__(self):
-        warnings.warn(
-            "'MeshCollisionPropertiesCfg' is deprecated and will be removed in 5.0. Use"
-            " 'isaaclab.sim.schemas.MeshCollisionBaseCfg' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__post_init__()
+    warnings.warn(
+        "'MeshCollisionPropertiesCfg' is deprecated and will be removed in 5.0. Pass a list of"
+        " fragments instead, e.g. [UsdPhysicsMeshCollisionCfg(mesh_approximation_name=...)].",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return [UsdPhysicsMeshCollisionCfg(**kwargs)]
 
 
-@configclass
-class ConvexHullPropertiesCfg(PhysxConvexHullPropertiesCfg):
-    """Deprecated: use :class:`PhysxConvexHullPropertiesCfg`.
+def ConvexHullPropertiesCfg(**kwargs) -> list[MeshCollisionFragment]:
+    """Deprecated factory returning the equivalent mesh-collision fragment list.
 
     .. deprecated:: 4.6.25
-        Renamed and relocated. This alias preserves backwards compatibility and is
-        scheduled for removal in 5.0.
+        Pass a list of fragments instead, e.g.
+        ``mesh_collision_props=[UsdPhysicsMeshCollisionCfg(mesh_approximation_name="convexHull"),``
+        ``PhysxConvexHullCfg(...)]``. Removal in 5.0.
     """
+    warnings.warn(
+        "'ConvexHullPropertiesCfg' is deprecated and will be removed in 5.0. Pass a list of"
+        " fragments instead, e.g. [UsdPhysicsMeshCollisionCfg(mesh_approximation_name='convexHull'),"
+        " PhysxConvexHullCfg(...)].",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    usd, cooking = _split_mesh_collision_kwargs(PhysxConvexHullCfg, kwargs)
+    return [usd, cooking] if cooking is not None else [usd]
 
-    def __post_init__(self):
-        warnings.warn(
-            "'ConvexHullPropertiesCfg' is deprecated and will be removed in 5.0. Use"
-            " 'isaaclab_physx.sim.schemas.PhysxConvexHullPropertiesCfg' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__post_init__()
 
-
-@configclass
-class ConvexDecompositionPropertiesCfg(PhysxConvexDecompositionPropertiesCfg):
-    """Deprecated: use :class:`PhysxConvexDecompositionPropertiesCfg`.
+def ConvexDecompositionPropertiesCfg(**kwargs) -> list[MeshCollisionFragment]:
+    """Deprecated factory returning the equivalent mesh-collision fragment list.
 
     .. deprecated:: 4.6.25
-        Renamed and relocated. This alias preserves backwards compatibility and is
-        scheduled for removal in 5.0.
+        Pass a list of fragments instead, e.g.
+        ``mesh_collision_props=[UsdPhysicsMeshCollisionCfg(mesh_approximation_name="convexDecomposition"),``
+        ``PhysxConvexDecompositionCfg(...)]``. Removal in 5.0.
     """
+    warnings.warn(
+        "'ConvexDecompositionPropertiesCfg' is deprecated and will be removed in 5.0. Pass a list of"
+        " fragments instead, e.g. [UsdPhysicsMeshCollisionCfg(mesh_approximation_name='convexDecomposition'),"
+        " PhysxConvexDecompositionCfg(...)].",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    usd, cooking = _split_mesh_collision_kwargs(PhysxConvexDecompositionCfg, kwargs)
+    return [usd, cooking] if cooking is not None else [usd]
 
-    def __post_init__(self):
-        warnings.warn(
-            "'ConvexDecompositionPropertiesCfg' is deprecated and will be removed in 5.0. Use"
-            " 'isaaclab_physx.sim.schemas.PhysxConvexDecompositionPropertiesCfg' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__post_init__()
 
-
-@configclass
-class TriangleMeshPropertiesCfg(PhysxTriangleMeshPropertiesCfg):
-    """Deprecated: use :class:`PhysxTriangleMeshPropertiesCfg`.
+def TriangleMeshPropertiesCfg(**kwargs) -> list[MeshCollisionFragment]:
+    """Deprecated factory returning the equivalent mesh-collision fragment list.
 
     .. deprecated:: 4.6.25
-        Renamed and relocated. This alias preserves backwards compatibility and is
-        scheduled for removal in 5.0.
+        Pass a list of fragments instead, e.g.
+        ``mesh_collision_props=[UsdPhysicsMeshCollisionCfg(mesh_approximation_name="none"),``
+        ``PhysxTriangleMeshCfg(...)]``. Removal in 5.0.
     """
+    warnings.warn(
+        "'TriangleMeshPropertiesCfg' is deprecated and will be removed in 5.0. Pass a list of"
+        " fragments instead, e.g. [UsdPhysicsMeshCollisionCfg(mesh_approximation_name='none'),"
+        " PhysxTriangleMeshCfg(...)].",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    usd, cooking = _split_mesh_collision_kwargs(PhysxTriangleMeshCfg, kwargs)
+    return [usd, cooking] if cooking is not None else [usd]
 
-    def __post_init__(self):
-        warnings.warn(
-            "'TriangleMeshPropertiesCfg' is deprecated and will be removed in 5.0. Use"
-            " 'isaaclab_physx.sim.schemas.PhysxTriangleMeshPropertiesCfg' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__post_init__()
 
-
-@configclass
-class TriangleMeshSimplificationPropertiesCfg(PhysxTriangleMeshSimplificationPropertiesCfg):
-    """Deprecated: use :class:`PhysxTriangleMeshSimplificationPropertiesCfg`.
+def TriangleMeshSimplificationPropertiesCfg(**kwargs) -> list[MeshCollisionFragment]:
+    """Deprecated factory returning the equivalent mesh-collision fragment list.
 
     .. deprecated:: 4.6.25
-        Renamed and relocated. This alias preserves backwards compatibility and is
-        scheduled for removal in 5.0.
+        Pass a list of fragments instead, e.g.
+        ``mesh_collision_props=[UsdPhysicsMeshCollisionCfg(mesh_approximation_name="meshSimplification"),``
+        ``PhysxTriangleMeshSimplificationCfg(...)]``. Removal in 5.0.
     """
+    warnings.warn(
+        "'TriangleMeshSimplificationPropertiesCfg' is deprecated and will be removed in 5.0. Pass a list of"
+        " fragments instead, e.g. [UsdPhysicsMeshCollisionCfg(mesh_approximation_name='meshSimplification'),"
+        " PhysxTriangleMeshSimplificationCfg(...)].",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    usd, cooking = _split_mesh_collision_kwargs(PhysxTriangleMeshSimplificationCfg, kwargs)
+    return [usd, cooking] if cooking is not None else [usd]
 
-    def __post_init__(self):
-        warnings.warn(
-            "'TriangleMeshSimplificationPropertiesCfg' is deprecated and will be removed in 5.0. Use"
-            " 'isaaclab_physx.sim.schemas.PhysxTriangleMeshSimplificationPropertiesCfg' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__post_init__()
 
-
-@configclass
-class SDFMeshPropertiesCfg(PhysxSDFMeshPropertiesCfg):
-    """Deprecated: use :class:`PhysxSDFMeshPropertiesCfg`.
+def SDFMeshPropertiesCfg(**kwargs) -> list[MeshCollisionFragment]:
+    """Deprecated factory returning the equivalent mesh-collision fragment list.
 
     .. deprecated:: 4.6.25
-        Renamed and relocated. This alias preserves backwards compatibility and is
-        scheduled for removal in 5.0.
+        Pass a list of fragments instead, e.g.
+        ``mesh_collision_props=[UsdPhysicsMeshCollisionCfg(mesh_approximation_name="sdf"), PhysxSDFMeshCfg(...)]``.
+        Removal in 5.0.
     """
-
-    def __post_init__(self):
-        warnings.warn(
-            "'SDFMeshPropertiesCfg' is deprecated and will be removed in 5.0. Use"
-            " 'isaaclab_physx.sim.schemas.PhysxSDFMeshPropertiesCfg' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__post_init__()
+    warnings.warn(
+        "'SDFMeshPropertiesCfg' is deprecated and will be removed in 5.0. Pass a list of"
+        " fragments instead, e.g. [UsdPhysicsMeshCollisionCfg(mesh_approximation_name='sdf'),"
+        " PhysxSDFMeshCfg(...)].",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    usd, cooking = _split_mesh_collision_kwargs(PhysxSDFMeshCfg, kwargs)
+    return [usd, cooking] if cooking is not None else [usd]
 
 
 @configclass

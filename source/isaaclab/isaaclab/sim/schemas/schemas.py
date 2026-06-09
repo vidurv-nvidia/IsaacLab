@@ -59,18 +59,14 @@ MESH_APPROXIMATION_TOKENS = {
 def _get_physx_mesh_collision_cfgs() -> list:
     from isaaclab_physx.sim.schemas import schemas_cfg as _physx_cfg
 
+    # The legacy ``ConvexHull*`` / ``SDFMesh*`` etc. aliases are now deprecation factories
+    # (returning fragment lists), not cfg classes, so they are no longer listed here.
     return [
         _physx_cfg.PhysxConvexHullPropertiesCfg,
         _physx_cfg.PhysxConvexDecompositionPropertiesCfg,
         _physx_cfg.PhysxTriangleMeshPropertiesCfg,
         _physx_cfg.PhysxTriangleMeshSimplificationPropertiesCfg,
         _physx_cfg.PhysxSDFMeshPropertiesCfg,
-        # legacy deprecation aliases
-        _physx_cfg.ConvexHullPropertiesCfg,
-        _physx_cfg.ConvexDecompositionPropertiesCfg,
-        _physx_cfg.TriangleMeshPropertiesCfg,
-        _physx_cfg.TriangleMeshSimplificationPropertiesCfg,
-        _physx_cfg.SDFMeshPropertiesCfg,
     ]
 
 

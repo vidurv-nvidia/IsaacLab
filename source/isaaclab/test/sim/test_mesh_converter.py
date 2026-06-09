@@ -18,6 +18,13 @@ import random
 import tempfile
 
 import pytest
+from isaaclab_physx.sim.schemas import (
+    PhysxConvexDecompositionPropertiesCfg,
+    PhysxConvexHullPropertiesCfg,
+    PhysxSDFMeshPropertiesCfg,
+    PhysxTriangleMeshPropertiesCfg,
+    PhysxTriangleMeshSimplificationPropertiesCfg,
+)
 
 from pxr import UsdGeom, UsdPhysics
 
@@ -253,7 +260,7 @@ def test_collider_no_approximation(assets):
 def test_collider_convex_hull(assets):
     """Convert an OBJ file using convex hull approximation"""
     collision_props = schemas_cfg.CollisionPropertiesCfg(collision_enabled=True)
-    mesh_collision_prop = schemas_cfg.ConvexHullPropertiesCfg()
+    mesh_collision_prop = PhysxConvexHullPropertiesCfg()
     mesh_config = MeshConverterCfg(
         asset_path=assets["obj"],
         mesh_collision_props=mesh_collision_prop,
@@ -268,7 +275,7 @@ def test_collider_convex_hull(assets):
 def test_collider_convex_decomposition(assets):
     """Convert an OBJ file using convex decomposition approximation"""
     collision_props = schemas_cfg.CollisionPropertiesCfg(collision_enabled=True)
-    mesh_collision_prop = schemas_cfg.ConvexDecompositionPropertiesCfg()
+    mesh_collision_prop = PhysxConvexDecompositionPropertiesCfg()
     mesh_config = MeshConverterCfg(
         asset_path=assets["obj"],
         mesh_collision_props=mesh_collision_prop,
@@ -283,7 +290,7 @@ def test_collider_convex_decomposition(assets):
 def test_collider_triangle_mesh(assets):
     """Convert an OBJ file using triangle mesh approximation"""
     collision_props = schemas_cfg.CollisionPropertiesCfg(collision_enabled=True)
-    mesh_collision_prop = schemas_cfg.TriangleMeshPropertiesCfg()
+    mesh_collision_prop = PhysxTriangleMeshPropertiesCfg()
     mesh_config = MeshConverterCfg(
         asset_path=assets["obj"],
         mesh_collision_props=mesh_collision_prop,
@@ -298,7 +305,7 @@ def test_collider_triangle_mesh(assets):
 def test_collider_mesh_simplification(assets):
     """Convert an OBJ file using mesh simplification approximation"""
     collision_props = schemas_cfg.CollisionPropertiesCfg(collision_enabled=True)
-    mesh_collision_prop = schemas_cfg.TriangleMeshSimplificationPropertiesCfg()
+    mesh_collision_prop = PhysxTriangleMeshSimplificationPropertiesCfg()
     mesh_config = MeshConverterCfg(
         asset_path=assets["obj"],
         mesh_collision_props=mesh_collision_prop,
@@ -343,7 +350,7 @@ def test_collider_mesh_bounding_sphere(assets):
 def test_collider_mesh_sdf(assets):
     """Convert an OBJ file using signed distance field approximation"""
     collision_props = schemas_cfg.CollisionPropertiesCfg(collision_enabled=True)
-    mesh_collision_prop = schemas_cfg.SDFMeshPropertiesCfg()
+    mesh_collision_prop = PhysxSDFMeshPropertiesCfg()
     mesh_config = MeshConverterCfg(
         asset_path=assets["obj"],
         mesh_collision_props=mesh_collision_prop,
