@@ -12,6 +12,7 @@ from isaaclab.sim.schemas.schemas_cfg import (
     CollisionBaseCfg,
     DeformableBodyPropertiesBaseCfg,
     JointDriveBaseCfg,
+    JointDriveFragment,
     MeshCollisionBaseCfg,
     RigidBodyBaseCfg,
     RigidBodyFragment,
@@ -107,6 +108,29 @@ class MujocoRigidBodyCfg(RigidBodyFragment):
 
     ``0.0`` = no compensation; ``1.0`` = full compensation. Written to ``mjc:gravcomp``. Body-level
     gravcomp must be set for joint-level ``actuatorgravcomp`` to have any effect.
+    """
+
+
+@configclass
+class MujocoJointCfg(JointDriveFragment):
+    """``mjc:*`` joint attributes for Newton's MuJoCo solver from ``MjcJointAPI``.
+
+    A single-namespace fragment (see :class:`~isaaclab.sim.schemas.SchemaFragment`) carrying
+    joint-level gravity compensation. Applied alongside
+    :class:`~isaaclab.sim.schemas.UsdPhysicsDriveCfg` via
+    :func:`~isaaclab.sim.schemas.apply_joint_drive_properties` and written with the generic
+    :func:`~isaaclab.sim.schemas.apply_namespaced` writer.
+    """
+
+    _usd_namespace: ClassVar[str | None] = "mjc"
+    _usd_applied_schema: ClassVar[str | None] = "MjcJointAPI"
+
+    actuatorgravcomp: bool | None = None
+    """Route gravity compensation forces through the actuator channel.
+
+    When ``True``, compensation forces go to ``qfrc_actuator`` (subject to force limits).
+    Requires body-level :attr:`MujocoRigidBodyCfg.gravcomp`. Written to ``mjc:actuatorgravcomp``
+    via ``MjcJointAPI``.
     """
 
 
