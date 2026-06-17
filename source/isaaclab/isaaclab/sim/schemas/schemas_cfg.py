@@ -177,6 +177,21 @@ class UsdPhysicsRigidBodyCfg(RigidBodyFragment):
 
 
 @configclass
+class ArticulationRootFragment(SchemaFragment):
+    """Marker base for articulation-root fragments; types the ``articulation_props`` slot.
+
+    Articulation-root fragments author backend-specific articulation properties (solver
+    iterations, sleep / stabilization thresholds, self-collision toggles). The defining
+    ``UsdPhysics.ArticulationRootAPI`` anchor is applied by the articulation-root family
+    writer (:func:`~isaaclab.sim.schemas.apply_articulation_root_properties`) only when the
+    ``articulation_props`` slot carries fragments (presence-gated, matching the legacy
+    :meth:`~isaaclab.sim.schemas.modify_articulation_root_properties` behaviour).
+    """
+
+    pass
+
+
+@configclass
 class ArticulationRootBaseCfg:
     """Solver-common properties to apply to the root of an articulation.
 

@@ -24,6 +24,7 @@ from ..utils import (
     create_prim,
     find_global_fixed_joint_prim,
     get_all_matching_child_prims,
+    get_first_matching_child_prim,
     safe_set_attribute_on_usd_prim,
     safe_set_attribute_on_usd_schema,
 )
@@ -265,6 +266,134 @@ def apply_namespaced(cfg: schemas_cfg.SchemaFragment, prim_path: str, stage: Usd
 """
 Articulation root properties.
 """
+
+
+def apply_articulation_root_properties(
+    prim_path: str,
+    fragments,
+    stage: Usd.Stage | None = None,
+    fix_root_link: bool | None = None,
+) -> bool:
+    """Apply a list of articulation-root fragments to a prim.
+
+    Resolves the articulation root before writing: USD assets author
+    ``UsdPhysics.ArticulationRootAPI`` on a child prim (the root link / fixed joint), so this
+    writer descends the subtree under ``prim_path`` and tunes the existing root in place (matching
+    the legacy :func:`modify_articulation_root_properties` writer). Only when no prim in the
+    subtree carries the root does it apply ``UsdPhysics.ArticulationRootAPI`` on ``prim_path``
+    itself (define-fresh, e.g. for primitive or programmatic spawns). This guarantees exactly one
+    articulation root rather than stamping a duplicate on the input prim.
+
+    Each fragment is then dispatched to the resolved root via its
+    :attr:`~isaaclab.sim.schemas.SchemaFragment.func`. Backend fragments carry backend-specific
+    funcs, so core never imports a backend. Finally, if ``fix_root_link`` is not ``None``, the
+    world-to-root fixed-joint logic from the legacy :func:`modify_articulation_root_properties`
+    writer is applied to the resolved root.
+
+    Args:
+        prim_path: The prim path to search for the articulation root under (the root may be on a
+            descendant); the schemas are applied to the resolved root prim.
+        fragments: An iterable of :class:`~isaaclab.sim.schemas.ArticulationRootFragment` instances.
+        stage: The stage where to find the prim. Defaults to None, in which case the current
+            stage is used.
+        fix_root_link: Whether to fix the root link of the articulation. This is a non-USD,
+            spawner-level behaviour flag (it is not a fragment field). See
+            :attr:`~isaaclab.sim.spawners.UsdFileCfg.fix_root_link` for the semantics. Defaults
+            to None, in which case the root link is not modified.
+
+    Returns:
+        True if the properties were successfully set.
+
+    Raises:
+        ValueError: When the prim path is not valid.
+        NotImplementedError: When the root prim is not a rigid body and a fixed joint is to be created.
+    """
+    if stage is None:
+        stage = get_current_stage()
+    # tune the existing root in place (it may live on a child prim); instance proxies can't be
+    # authored on, so don't traverse them
+    articulation_prim = get_first_matching_child_prim(
+        prim_path,
+        lambda prim: prim.HasAPI(UsdPhysics.ArticulationRootAPI),
+        stage,
+        traverse_instance_prims=False,
+    )
+    # no existing root in the subtree: define one on the input prim
+    if articulation_prim is None:
+        articulation_prim = stage.GetPrimAtPath(prim_path)
+        UsdPhysics.ArticulationRootAPI.Apply(articulation_prim)
+    root_path = articulation_prim.GetPath().pathString
+    # dispatch each fragment to the resolved root via its own applier
+    for cfg in fragments:
+        func = cfg.func if callable(cfg.func) else string_to_callable(cfg.func)
+        func(cfg, root_path, stage)
+
+    # fix root link based on input
+    # we do the fixed joint processing later to not interfere with setting other properties.
+    # this logic is reproduced from the legacy ``modify_articulation_root_properties`` writer.
+    if fix_root_link is not None:
+        # check if a global fixed joint exists under the resolved root prim
+        existing_fixed_joint_prim = find_global_fixed_joint_prim(root_path)
+
+        # if we found a fixed joint, enable/disable it based on the input
+        # otherwise, create a fixed joint between the world and the root link
+        if existing_fixed_joint_prim is not None:
+            logger.info(
+                f"Found an existing fixed joint for the articulation: '{root_path}'. Setting it to: {fix_root_link}."
+            )
+            existing_fixed_joint_prim.GetJointEnabledAttr().Set(fix_root_link)
+        elif fix_root_link:
+            logger.info(f"Creating a fixed joint for the articulation: '{root_path}'.")
+
+            # note: we have to assume that the root prim is a rigid body,
+            #   i.e. we don't handle the case where the root prim is not a rigid body but has articulation api on it
+            # Currently, there is no obvious way to get first rigid body link identified by the PhysX parser
+            if not articulation_prim.HasAPI(UsdPhysics.RigidBodyAPI):
+                raise NotImplementedError(
+                    f"The articulation prim '{root_path}' does not have the RigidBodyAPI applied."
+                    " To create a fixed joint, we need to determine the first rigid body link in"
+                    " the articulation tree. However, this is not implemented yet."
+                )
+
+            # create a fixed joint between the root link and the world frame
+            from omni.physx.scripts import utils as physx_utils
+
+            physx_utils.createJoint(stage=stage, joint_type="Fixed", from_prim=None, to_prim=articulation_prim)
+
+            # Having a fixed joint on a rigid body is not treated as "fixed base articulation".
+            # instead, it is treated as a part of the maximal coordinate tree.
+            # Moving the articulation root to the parent solves this issue. This is a limitation of the PhysX parser.
+            # get parent prim
+            parent_prim = articulation_prim.GetParent()
+            # apply api to parent
+            UsdPhysics.ArticulationRootAPI.Apply(parent_prim)
+            parent_applied = parent_prim.GetAppliedSchemas()
+            if "PhysxArticulationAPI" not in parent_applied:
+                parent_prim.AddAppliedSchema("PhysxArticulationAPI")
+
+            # copy the attributes
+            # -- usd attributes
+            usd_articulation_api = UsdPhysics.ArticulationRootAPI(articulation_prim)
+            for attr_name in usd_articulation_api.GetSchemaAttributeNames():
+                attr = articulation_prim.GetAttribute(attr_name)
+                parent_attr = parent_prim.GetAttribute(attr_name)
+                if not parent_attr:
+                    parent_attr = parent_prim.CreateAttribute(attr_name, attr.GetTypeName())
+                parent_attr.Set(attr.Get())
+            # -- physx attributes (copy by name prefix)
+            for attr in articulation_prim.GetAttributes():
+                aname = attr.GetName()
+                if aname.startswith("physxArticulation:"):
+                    parent_attr = parent_prim.GetAttribute(aname)
+                    if not parent_attr:
+                        parent_attr = parent_prim.CreateAttribute(aname, attr.GetTypeName())
+                    parent_attr.Set(attr.Get())
+
+            # remove api from root
+            articulation_prim.RemoveAppliedSchema("PhysxArticulationAPI")
+            articulation_prim.RemoveAPI(UsdPhysics.ArticulationRootAPI)
+
+    return True
 
 
 def define_articulation_root_properties(
