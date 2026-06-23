@@ -1,6 +1,38 @@
 Changelog
 ---------
 
+0.1.2 (2026-06-11)
+~~~~~~~~~~~~~~~~~~
+
+Fixed
+^^^^^
+
+* Fixed a crash (``AttributeError: 'dict' object has no attribute 'split'``) when
+  launching the experimental Warp environments
+  (:class:`~isaaclab_experimental.envs.ManagerBasedRLEnvWarp`,
+  :class:`~isaaclab_experimental.envs.DirectRLEnvWarp`) with a Kit visualizer
+  requested (e.g. ``--visualizer kit``). The environments now resolve the active
+  visualizer through :meth:`~isaaclab.sim.SimulationContext.has_active_visualizers`
+  and the :attr:`~isaaclab.sim.SimulationContext.is_rendering` property, matching the
+  stable environments, instead of parsing the ``/isaaclab/visualizer`` settings node
+  (which is a dictionary) as a string.
+
+
+0.1.1 (2026-06-04)
+~~~~~~~~~~~~~~~~~~
+
+Fixed
+^^^^^
+
+* Fixed the experimental packages eagerly importing backend modules (``pxr``,
+  ``omni``, ``carb``, ``isaacsim``, ``scipy``) at import time, which crashed when
+  a warp task's env config was loaded before ``SimulationApp`` was launched. The
+  ``managers``, ``envs``, ``envs.mdp`` and ``envs.mdp.actions`` packages now use
+  ``lazy_export`` with ``.pyi`` stubs, and the MDP term leaf modules guard runtime
+  types (``Articulation``, ``InteractiveScene``, ``ContactSensor``, action terms)
+  under ``TYPE_CHECKING`` with string ``class_type`` references.
+
+
 0.1.0 (2026-06-02)
 ~~~~~~~~~~~~~~~~~~
 

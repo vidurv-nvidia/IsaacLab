@@ -12,6 +12,8 @@ simulation_app = AppLauncher(headless=True).app
 
 """Rest everything follows."""
 
+import pytest
+
 from pxr import UsdGeom, UsdPhysics
 
 import isaaclab.sim as sim_utils
@@ -24,7 +26,7 @@ def _make_xform(stage, path="/World/Body"):
 
 
 # -------------------------------------------------------------------------------------
-# Task 1 -- SchemaFragment base, RigidBodyFragment marker, UsdPhysicsRigidBodyCfg
+# SchemaFragment base, RigidBodyFragment marker, UsdPhysicsRigidBodyCfg
 # -------------------------------------------------------------------------------------
 
 
@@ -40,7 +42,7 @@ def test_fragment_metadata_defaults():
 
 
 # -------------------------------------------------------------------------------------
-# Task 2 -- apply_namespaced generic applier
+# apply_namespaced generic applier
 # -------------------------------------------------------------------------------------
 
 
@@ -60,7 +62,7 @@ def test_apply_namespaced_writes_only_set_fields():
 
 
 # -------------------------------------------------------------------------------------
-# Task 3 -- PhysxRigidBodyCfg (isaaclab_physx)
+# PhysxRigidBodyCfg (isaaclab_physx)
 # -------------------------------------------------------------------------------------
 
 
@@ -80,7 +82,7 @@ def test_physx_rigid_body_fragment_writes_physx_namespace():
 
 
 # -------------------------------------------------------------------------------------
-# Task 4 -- MujocoRigidBodyCfg (isaaclab_newton)
+# MujocoRigidBodyCfg (isaaclab_newton)
 # -------------------------------------------------------------------------------------
 
 
@@ -99,7 +101,7 @@ def test_mujoco_rigid_body_fragment_writes_mjc_namespace():
 
 
 # -------------------------------------------------------------------------------------
-# Task 5 -- apply_rigid_body_properties dispatch (implicit anchor + multi-namespace)
+# apply_rigid_body_properties dispatch (implicit anchor + multi-namespace)
 # -------------------------------------------------------------------------------------
 
 
@@ -130,7 +132,7 @@ def test_apply_rigid_body_properties_composes_namespaces():
 
 
 # -------------------------------------------------------------------------------------
-# Task 6 -- spawner slot accepts a fragment list + transition routing
+# spawner slot accepts a fragment list + transition routing
 # -------------------------------------------------------------------------------------
 
 
@@ -152,7 +154,7 @@ def test_spawn_shape_with_rigid_fragment_list():
 
 
 # -------------------------------------------------------------------------------------
-# Task 8 -- public imports
+# public imports
 # -------------------------------------------------------------------------------------
 
 
@@ -167,3 +169,69 @@ def test_public_imports():
         apply_namespaced,
         apply_rigid_body_properties,
     )
+
+
+# -------------------------------------------------------------------------------------
+# Review follow-ups -- prim-validity guard, aggregated return, namespace invariant guard
+# -------------------------------------------------------------------------------------
+
+
+def test_apply_namespaced_raises_on_invalid_prim():
+    from isaaclab.sim.schemas import UsdPhysicsRigidBodyCfg, apply_namespaced
+
+    sim_utils.create_new_stage()
+    SimulationContext(SimulationCfg(dt=0.01))
+    stage = sim_utils.get_current_stage()
+    # no prim authored at this path -> GetPrimAtPath returns an invalid prim
+    with pytest.raises(ValueError):
+        apply_namespaced(UsdPhysicsRigidBodyCfg(rigid_body_enabled=True), "/World/DoesNotExist", stage)
+
+
+def test_apply_rigid_body_properties_raises_on_invalid_prim():
+    from isaaclab.sim.schemas import UsdPhysicsRigidBodyCfg, apply_rigid_body_properties
+
+    sim_utils.create_new_stage()
+    SimulationContext(SimulationCfg(dt=0.01))
+    stage = sim_utils.get_current_stage()
+    with pytest.raises(ValueError):
+        apply_rigid_body_properties("/World/DoesNotExist", [UsdPhysicsRigidBodyCfg(rigid_body_enabled=True)], stage)
+
+
+def test_apply_rigid_body_properties_aggregates_fragment_results():
+    from isaaclab.sim.schemas import UsdPhysicsRigidBodyCfg, apply_rigid_body_properties
+
+    sim_utils.create_new_stage()
+    SimulationContext(SimulationCfg(dt=0.01))
+    stage = sim_utils.get_current_stage()
+    _make_xform(stage, "/World/Agg")
+
+    # a fragment whose applier reports failure must make the aggregate return False
+    failing = UsdPhysicsRigidBodyCfg(rigid_body_enabled=True)
+    failing.func = lambda cfg, prim_path, stage=None: False
+    assert apply_rigid_body_properties("/World/Agg", [failing], stage) is False
+
+    # all-succeeding fragments return True
+    ok = UsdPhysicsRigidBodyCfg(rigid_body_enabled=True)
+    assert apply_rigid_body_properties("/World/Agg", [ok], stage) is True
+
+
+def test_apply_namespaced_raises_without_namespace():
+    from typing import ClassVar
+
+    from isaaclab.sim.schemas import RigidBodyFragment, apply_namespaced
+    from isaaclab.utils import configclass
+
+    @configclass
+    class _NoNamespaceFragment(RigidBodyFragment):
+        # deliberately leaves ``_usd_namespace`` as None, violating the fragment invariant that
+        # every field is authored as a namespaced USD attribute
+        _usd_namespace: ClassVar[str | None] = None
+        rigid_body_enabled: bool | None = None
+
+    sim_utils.create_new_stage()
+    SimulationContext(SimulationCfg(dt=0.01))
+    stage = sim_utils.get_current_stage()
+    prim = _make_xform(stage, "/World/NoNs")
+    UsdPhysics.RigidBodyAPI.Apply(prim)
+    with pytest.raises(ValueError):
+        apply_namespaced(_NoNamespaceFragment(rigid_body_enabled=True), "/World/NoNs", stage)
