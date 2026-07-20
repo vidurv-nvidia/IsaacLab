@@ -242,3 +242,24 @@ def test_rigid_body_fragments_empty_list_authors_nothing():
     prim = stage.GetPrimAtPath("/World/Bare")
     assert result is True
     assert not prim.HasAPI(UsdPhysics.RigidBodyAPI)
+
+
+def test_collision_and_mass_fragments_empty_list_author_nothing():
+    """The empty-list no-op contract holds for the collision and mass writers too.
+
+    Applying a defining API as a side effect of an empty request would silently change the
+    prim's physics role; the presence-gated contract requires at least one fragment before a
+    bare prim is anchored. A fragment with no fields set remains the way to request
+    default-valued creation.
+    """
+    from isaaclab.sim.schemas import apply_collision_properties, apply_mass_properties
+
+    sim_utils.create_new_stage()
+    SimulationContext(SimulationCfg(dt=0.01))
+    stage = sim_utils.get_current_stage()
+    prim = UsdGeom.Xform.Define(stage, "/World/EmptyFragCM").GetPrim()
+
+    assert apply_collision_properties("/World/EmptyFragCM", [], stage) is True
+    assert apply_mass_properties("/World/EmptyFragCM", [], stage) is True
+    assert not prim.HasAPI(UsdPhysics.CollisionAPI)
+    assert not prim.HasAPI(UsdPhysics.MassAPI)

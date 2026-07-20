@@ -632,6 +632,10 @@ def apply_rigid_body_properties(
     target via its :attr:`~isaaclab.sim.schemas.SchemaFragment.func`. Backend fragments carry
     backend-specific funcs, so core never imports a backend.
 
+    An empty ``fragments`` list authors nothing: no attributes are written and no defining API
+    is applied (matching the presence-gated articulation-root writer). To create a body with
+    default values on a bare prim, pass a fragment with no fields set instead.
+
     Args:
         prim_path: The prim path whose subtree is searched for rigid bodies.
         fragments: An iterable of :class:`~isaaclab.sim.schemas.RigidBodyFragment` instances.
@@ -864,6 +868,10 @@ def apply_collision_properties(
     every resolved target via its :attr:`~isaaclab.sim.schemas.SchemaFragment.func`. Backend
     fragments carry backend-specific funcs, so core never imports a backend.
 
+    An empty ``fragments`` list authors nothing: no attributes are written and no defining API
+    is applied (matching the presence-gated articulation-root writer). To create a collider with
+    default values on a bare prim, pass a fragment with no fields set instead.
+
     Args:
         prim_path: The prim path whose subtree is searched for colliders.
         fragments: An iterable of :class:`~isaaclab.sim.schemas.CollisionFragment` instances.
@@ -995,6 +1003,10 @@ def apply_mass_properties(
     subtree carries none is ``UsdPhysics.MassAPI`` applied to ``prim_path`` itself -- the
     bare-prim case used by the shape and mesh spawners. Each fragment is dispatched to every
     resolved target via its :attr:`~isaaclab.sim.schemas.SchemaFragment.func`.
+
+    An empty ``fragments`` list authors nothing: no attributes are written and no defining API
+    is applied (matching the presence-gated articulation-root writer). To create mass properties with
+    default values on a bare prim, pass a fragment with no fields set instead.
 
     Args:
         prim_path: The prim path whose subtree is searched for mass-bearing prims.
