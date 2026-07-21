@@ -69,7 +69,7 @@ class TerminationsCfg:
 
 @configclass
 class HeterogeneousMotionManagerEnvCfg(ManagerBasedRLEnvCfg):
-    """Configuration for the manager-based heterogeneous motion-reference environment."""
+    """Legacy procedural manager-based construction example; this is not the maze task."""
 
     scene: HeterogeneousMotionSceneCfg = HeterogeneousMotionSceneCfg(
         num_envs=2, env_spacing=4.0, replicate_physics=True

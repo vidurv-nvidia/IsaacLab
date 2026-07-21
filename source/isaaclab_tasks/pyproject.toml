@@ -32,3 +32,4 @@ include = ["isaaclab_tasks", "isaaclab_tasks.*"]
 
 [tool.setuptools.package-data]
 "*" = ["*.pyi"]
+"isaaclab_tasks.contrib.heterogeneous_motion" = ["motions/*.csv"]

@@ -9,26 +9,20 @@ from isaaclab.envs import DirectRLEnvCfg
 from isaaclab.sim import SimulationCfg
 from isaaclab.utils.configclass import configclass
 
-from .scene_cfg import HeterogeneousMazeSceneCfg
+from .scene_cfg import HeterogeneousMotionSceneCfg
 
 
 @configclass
-class HeterogeneousMazeDirectEnvCfg(DirectRLEnvCfg):
-    """Configuration for the heterogeneous planar maze demonstrator."""
+class HeterogeneousMotionDirectEnvCfg(DirectRLEnvCfg):
+    """Configuration for the direct heterogeneous motion-reference environment."""
 
-    episode_length_s = 10.0
+    episode_length_s = 5.0
     decimation = 2
-    action_space = 2
-    observation_space = 6
+    action_space = 28
+    observation_space = 85
     state_space = 0
 
-    max_speed = 1.0
-    lookahead_points = 4
-    goal_tolerance = 0.25
-
     sim: SimulationCfg = SimulationCfg(dt=1.0 / 120.0, render_interval=decimation, physics=PhysxCfg())
-    scene: HeterogeneousMazeSceneCfg = HeterogeneousMazeSceneCfg(
-        num_envs=2,
-        env_spacing=7.0,
-        replicate_physics=True,
+    scene: HeterogeneousMotionSceneCfg = HeterogeneousMotionSceneCfg(
+        num_envs=2, env_spacing=4.0, replicate_physics=True
     )

@@ -3,21 +3,17 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Minimal heterogeneous motion-reference environments."""
+"""File-backed heterogeneous motion-reference environment."""
 
 import gymnasium as gym
 
 
 gym.register(
-    id="IsaacContrib-Heterogeneous-Motion-Direct",
-    entry_point=f"{__name__}.direct_env:HeterogeneousMotionDirectEnv",
+    id="IsaacContrib-Heterogeneous-Maze-Motion-Direct",
+    entry_point=f"{__name__}.direct_env:HeterogeneousMazeDirectEnv",
     disable_env_checker=True,
-    kwargs={"env_cfg_entry_point": f"{__name__}.direct_env_cfg:HeterogeneousMotionDirectEnvCfg"},
-)
-
-gym.register(
-    id="IsaacContrib-Heterogeneous-Motion",
-    entry_point="isaaclab.envs:ManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={"env_cfg_entry_point": f"{__name__}.manager_env_cfg:HeterogeneousMotionManagerEnvCfg"},
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.direct_env_cfg:HeterogeneousMazeDirectEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{__name__}.agents.rsl_rl_ppo_cfg:HeterogeneousMazePPORunnerCfg",
+    },
 )
