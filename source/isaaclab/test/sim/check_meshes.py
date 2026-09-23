@@ -40,9 +40,10 @@ import random
 import numpy as np
 import torch
 import tqdm
-from isaaclab_physx.sim.schemas import PhysxCollisionCfg
+from isaaclab_physx.sim.schemas import PhysxCollisionCfg, PhysxDeformableBodyCfg
 
 import isaaclab.sim as sim_utils
+from isaaclab.sim.schemas import OmniPhysicsDeformableBodyCfg
 
 
 def define_origins(num_origins: int, spacing: float) -> list[list[float]]:
@@ -127,10 +128,14 @@ def design_scene():
         # randomly decide if it is rigid or deformable
         if random.random() < 0.5:
             obj_cfg.rigid_props = None
-            obj_cfg.deformable_props = sim_utils.DeformableBodyPropertiesCfg()
-            obj_cfg.collision_props = PhysxCollisionCfg(rest_offset=0.0)
+            obj_cfg.volume_deformable_props = [
+                OmniPhysicsDeformableBodyCfg(kinematic_enabled=False),
+                PhysxDeformableBodyCfg(solver_position_iteration_count=16),
+            ]
+            # the collider is the simulation mesh created under the deformable, so target it explicitly
+            obj_cfg.collision_props = {"/sim_mesh": [PhysxCollisionCfg(rest_offset=0.0)]}
         else:
-            obj_cfg.deformable_props = None
+            obj_cfg.volume_deformable_props = None
             obj_cfg.rigid_props = sim_utils.UsdPhysicsRigidBodyCfg()
             obj_cfg.collision_props = sim_utils.UsdPhysicsCollisionCfg()
         # randomize the color

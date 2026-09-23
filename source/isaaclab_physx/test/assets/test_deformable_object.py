@@ -23,11 +23,8 @@ import torch
 import warp as wp
 from flaky import flaky
 from isaaclab_physx.assets import DeformableObject
-from isaaclab_physx.sim import (
-    PhysxDeformableBodyMaterialCfg,
-    PhysxDeformableBodyPropertiesCfg,
-    PhysxSurfaceDeformableBodyMaterialCfg,
-)
+from isaaclab_physx.sim import PhysxDeformableBodyMaterialCfg, PhysxSurfaceDeformableBodyMaterialCfg
+from isaaclab_physx.sim.schemas import PhysxDeformableBodyCfg
 
 import carb
 
@@ -35,6 +32,7 @@ import isaaclab.sim as sim_utils
 import isaaclab.utils.math as math_utils
 from isaaclab.assets import DeformableObjectCfg
 from isaaclab.sim import build_simulation_context
+from isaaclab.sim.schemas import OmniPhysicsDeformableBodyCfg
 
 # Temporarily disabled: this suite intermittently aborts with SIGABRT on CI.
 # Re-enable once the underlying crash is fixed.
@@ -75,10 +73,15 @@ def generate_cubes_scene(
 
     # Resolve spawn configuration
     if has_api:
-        spawn_cfg = sim_utils.MeshCuboidCfg(
-            size=(0.2, 0.2, 0.2),
-            deformable_props=PhysxDeformableBodyPropertiesCfg(kinematic_enabled=kinematic_enabled),
-        )
+        deformable_props = [
+            OmniPhysicsDeformableBodyCfg(kinematic_enabled=kinematic_enabled),
+            PhysxDeformableBodyCfg(solver_position_iteration_count=16),
+        ]
+        spawn_cfg = sim_utils.MeshCuboidCfg(size=(0.2, 0.2, 0.2))
+        if deformable_type == "surface":
+            spawn_cfg.surface_deformable_props = deformable_props
+        else:
+            spawn_cfg.volume_deformable_props = deformable_props
         # Add physics material if provided
         if material_path is not None:
             if deformable_type == "surface":

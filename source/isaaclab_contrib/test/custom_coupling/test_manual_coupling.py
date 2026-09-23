@@ -20,7 +20,7 @@ import pytest
 import torch
 from isaaclab_newton.assets import Articulation, RigidObject
 from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg, VBDSolverCfg
-from isaaclab_newton.sim.schemas import NewtonDeformableBodyPropertiesCfg
+from isaaclab_newton.sim.schemas import NewtonDeformableBodyCfg
 from isaaclab_newton.sim.spawners.materials import NewtonDeformableBodyMaterialCfg
 
 import isaaclab.sim as sim_utils
@@ -88,7 +88,7 @@ def generate_robot_and_two_cubes(
             prim_path="/World/env_[^/]+/cube_collide",
             spawn=sim_utils.MeshCuboidCfg(
                 size=(0.05, 0.05, 0.05),
-                deformable_props=NewtonDeformableBodyPropertiesCfg(),
+                volume_deformable_props=NewtonDeformableBodyCfg(),
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.8, 0.2)),
                 physics_material=NewtonDeformableBodyMaterialCfg(
                     density=500.0,
@@ -106,7 +106,7 @@ def generate_robot_and_two_cubes(
             prim_path="/World/env_[^/]+/cube_free",
             spawn=sim_utils.MeshCuboidCfg(
                 size=(0.05, 0.05, 0.05),
-                deformable_props=NewtonDeformableBodyPropertiesCfg(),
+                volume_deformable_props=NewtonDeformableBodyCfg(),
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.8, 0.2, 0.2)),
                 physics_material=NewtonDeformableBodyMaterialCfg(
                     density=500.0,
@@ -148,7 +148,7 @@ def generate_lateral_rigid_and_deformable_cubes(
             prim_path="/World/env_[^/]+/deformable_cube",
             spawn=sim_utils.MeshCuboidCfg(
                 size=(0.08, 0.08, 0.08),
-                deformable_props=NewtonDeformableBodyPropertiesCfg(),
+                volume_deformable_props=NewtonDeformableBodyCfg(),
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.8, 0.2, 0.2)),
                 physics_material=NewtonDeformableBodyMaterialCfg(
                     density=1000.0,

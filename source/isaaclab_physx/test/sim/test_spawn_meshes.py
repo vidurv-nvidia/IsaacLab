@@ -14,11 +14,12 @@ simulation_app = AppLauncher(headless=True).app
 
 
 import pytest
-from isaaclab_physx.sim.schemas.schemas_cfg import PhysxDeformableBodyPropertiesCfg
+from isaaclab_physx.sim.schemas.schemas_cfg import PhysxDeformableBodyCfg, PhysxDeformableBodyPropertiesCfg
 from isaaclab_physx.sim.spawners.materials.physics_materials_cfg import PhysxDeformableBodyMaterialCfg
 
 import isaaclab.sim as sim_utils
 from isaaclab.sim import SimulationCfg, SimulationContext
+from isaaclab.sim.schemas import OmniPhysicsDeformableBodyCfg
 
 pytestmark = pytest.mark.isaacsim_ci
 
@@ -49,10 +50,11 @@ Physics properties.
 def test_spawn_cone_with_deformable_and_mass_props(sim):
     """Test spawning of UsdGeomMesh prim for a cone with deformable body and mass API."""
     # Spawn cone
+    body_cfg = OmniPhysicsDeformableBodyCfg(deformable_body_enabled=True, kinematic_enabled=False, mass=1.0)
     cfg = sim_utils.MeshConeCfg(
         radius=1.0,
         height=2.0,
-        deformable_props=PhysxDeformableBodyPropertiesCfg(deformable_body_enabled=True, mass=1.0),
+        volume_deformable_props=[body_cfg, PhysxDeformableBodyCfg(solver_position_iteration_count=16)],
     )
     prim = cfg.func("/World/Cone", cfg)
 
@@ -61,8 +63,8 @@ def test_spawn_cone_with_deformable_and_mass_props(sim):
     assert sim.stage.GetPrimAtPath("/World/Cone").IsValid()
     # Check properties
     prim = sim.stage.GetPrimAtPath("/World/Cone")
-    assert prim.GetAttribute("omniphysics:deformableBodyEnabled").Get() == cfg.deformable_props.deformable_body_enabled
-    assert prim.GetAttribute("omniphysics:mass").Get() == cfg.deformable_props.mass
+    assert prim.GetAttribute("omniphysics:deformableBodyEnabled").Get() == body_cfg.deformable_body_enabled
+    assert prim.GetAttribute("omniphysics:mass").Get() == body_cfg.mass
 
     # check sim playing
     sim.play()
@@ -100,7 +102,10 @@ def test_spawn_cone_with_deformable_and_density_props(sim):
     cfg = sim_utils.MeshConeCfg(
         radius=1.0,
         height=2.0,
-        deformable_props=PhysxDeformableBodyPropertiesCfg(deformable_body_enabled=True),
+        volume_deformable_props=[
+            OmniPhysicsDeformableBodyCfg(deformable_body_enabled=True, kinematic_enabled=False),
+            PhysxDeformableBodyCfg(solver_position_iteration_count=16),
+        ],
         physics_material=PhysxDeformableBodyMaterialCfg(density=10.0),
     )
     prim = cfg.func("/World/Cone", cfg)

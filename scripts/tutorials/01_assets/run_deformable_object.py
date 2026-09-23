@@ -79,10 +79,10 @@ def design_scene():
     poissons_ratio = 0.4
     density = 500.0
     if args_cli.backend == "newton_vbd":
-        from isaaclab_newton.sim.schemas import NewtonDeformableBodyPropertiesCfg
+        from isaaclab_newton.sim.schemas import NewtonDeformableBodyCfg
         from isaaclab_newton.sim.spawners.materials import NewtonDeformableBodyMaterialCfg
 
-        deformable_props = NewtonDeformableBodyPropertiesCfg()
+        deformable_props = NewtonDeformableBodyCfg()
         # Newton's VBD path skips the simulation mesh collider, so collision offsets do not apply
         collision_props = None
         physics_material = NewtonDeformableBodyMaterialCfg(
@@ -91,11 +91,18 @@ def design_scene():
             density=density,
         )
     else:
-        from isaaclab_physx.sim.schemas import PhysxCollisionCfg, PhysxDeformableBodyPropertiesCfg
+        from isaaclab_physx.sim.schemas import PhysxCollisionCfg, PhysxDeformableBodyCfg
         from isaaclab_physx.sim.spawners.materials import PhysxDeformableBodyMaterialCfg
 
-        deformable_props = PhysxDeformableBodyPropertiesCfg()
-        collision_props = [PhysxCollisionCfg(rest_offset=0.0, contact_offset=0.001)]
+        from isaaclab.sim.schemas import OmniPhysicsDeformableBodyCfg
+
+        # one fragment per USD namespace: ``omniphysics:*`` body attributes and ``physxDeformableBody:*`` solver ones
+        deformable_props = [
+            OmniPhysicsDeformableBodyCfg(kinematic_enabled=False),
+            PhysxDeformableBodyCfg(solver_position_iteration_count=16),
+        ]
+        # the collider is the simulation mesh the spawner creates under the cube, so target it explicitly
+        collision_props = {"/sim_mesh": [PhysxCollisionCfg(rest_offset=0.0, contact_offset=0.001)]}
         physics_material = PhysxDeformableBodyMaterialCfg(
             poissons_ratio=poissons_ratio, youngs_modulus=youngs_modulus, density=density
         )
@@ -105,7 +112,7 @@ def design_scene():
         prim_path="/World/env_.*/Cube",
         spawn=sim_utils.MeshCuboidCfg(
             size=(0.2, 0.2, 0.2),
-            deformable_props=deformable_props,
+            volume_deformable_props=deformable_props,
             collision_props=collision_props,
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.5, 0.1, 0.0)),
             physics_material=physics_material,
