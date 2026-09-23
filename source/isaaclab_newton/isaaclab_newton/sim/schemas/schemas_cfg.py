@@ -57,6 +57,10 @@ class NewtonRigidBodyPropertiesCfg(RigidBodyBaseCfg):
     _usd_applied_schema: ClassVar[str | None] = None
 
 
+@_deprecated_schema_cfg(
+    "NewtonDeformableBodyCfg() in the spawner's deformable slot (surface_deformable_props if its"
+    " physics_material is a surface deformable material, else volume_deformable_props)"
+)
 @configclass
 class NewtonDeformableBodyPropertiesCfg(DeformableBodyPropertiesBaseCfg):
     """Newton-specific properties to apply to a deformable body.
@@ -68,6 +72,14 @@ class NewtonDeformableBodyPropertiesCfg(DeformableBodyPropertiesBaseCfg):
     deformable-body fields can be added without an API change.
 
     See :meth:`~isaaclab.sim.schemas.modify_deformable_body_properties` for more information.
+
+    .. deprecated:: 3.1
+        Use :class:`NewtonDeformableBodyCfg` instead, which reserves the same ``newton:``
+        namespace. Pass it in the spawner's ``surface_deformable_props`` slot when the spawner's
+        ``physics_material`` is a surface deformable material and in ``volume_deformable_props``
+        otherwise, which is the type the legacy ``deformable_props`` field derived. The active
+        physics backend now selects the deformable schemas; this class used to select Newton's
+        schemas itself. This class will be removed in 3.2.
     """
 
     _usd_namespace: ClassVar[str | None] = "newton"

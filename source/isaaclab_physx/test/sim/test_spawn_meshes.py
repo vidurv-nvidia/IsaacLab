@@ -72,6 +72,9 @@ def test_spawn_cone_with_deformable_and_mass_props(sim):
         sim.step()
 
 
+@pytest.mark.filterwarnings(
+    "ignore:(PhysxDeformableBodyPropertiesCfg|define_deformable_body_properties) is deprecated:DeprecationWarning"
+)
 def test_spawn_cone_with_deformable_and_collision_fragment_mapping(sim):
     """A deformable mesh accepts ``collision_props`` as a target-pattern mapping.
 

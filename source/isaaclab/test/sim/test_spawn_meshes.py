@@ -151,6 +151,7 @@ def test_spawn_mesh_with_edge_refinement(sim, monkeypatch, cfg_type, kwargs, edg
         (sim_utils.MeshRectangleCfg, {"size": (1.0, 1.0)}, {}, sim_utils.PhysxSurfaceDeformableBodyMaterialCfg(), None),
     ],
 )
+@pytest.mark.filterwarnings("ignore:DeformableBodyPropertiesCfg is deprecated:DeprecationWarning")
 def test_edge_refinement_sets_tetrahedralization_resolution(
     sim, monkeypatch, cfg_type, geometry_kwargs, refinement_kwargs, physics_material, expected_factor
 ):

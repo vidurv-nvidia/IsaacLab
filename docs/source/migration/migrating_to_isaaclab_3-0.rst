@@ -486,6 +486,21 @@ backend-specific fragment silently drops the inherited properties.
        :class:`~isaaclab_physx.sim.schemas.PhysxCollisionCfg` +
        :class:`~isaaclab_newton.sim.schemas.NewtonCollisionCfg` +
        :class:`~isaaclab_newton.sim.schemas.NewtonSDFCollisionCfg`
+   * - ``DeformableBodyPropertiesBaseCfg``
+     - None: the class has no fields. Pass
+       :class:`~isaaclab.sim.schemas.DeformableBodyFragment` subclasses in a deformable slot, and
+       subclass :class:`~isaaclab.sim.schemas.DeformableBodyFragment` for a custom cfg
+   * - ``OmniPhysicsDeformableBodyPropertiesCfg``
+     - :class:`~isaaclab.sim.schemas.OmniPhysicsDeformableBodyCfg`
+   * - ``PhysXDeformableBodyPropertiesCfg``
+     - :class:`~isaaclab_physx.sim.schemas.PhysxDeformableBodyCfg` +
+       :class:`~isaaclab_physx.sim.schemas.PhysxSurfaceDeformableBodyCfg` (surface only)
+   * - ``PhysxDeformableBodyPropertiesCfg``, ``DeformableBodyPropertiesCfg``
+     - :class:`~isaaclab.sim.schemas.OmniPhysicsDeformableBodyCfg` +
+       :class:`~isaaclab_physx.sim.schemas.PhysxDeformableBodyCfg` +
+       :class:`~isaaclab_physx.sim.schemas.PhysxSurfaceDeformableBodyCfg` (surface only)
+   * - ``NewtonDeformableBodyPropertiesCfg``
+     - :class:`~isaaclab_newton.sim.schemas.NewtonDeformableBodyCfg`
 
 .. note::
 
@@ -498,10 +513,78 @@ backend-specific fragment silently drops the inherited properties.
    attributes, so the fragment that writes them is the PhysX one regardless of
    which backend consumes it.
 
-.. note::
+**Deformable bodies: pick the slot**
 
-   The deformable cfgs (``DeformableBodyPropertiesBaseCfg`` and its backend
-   subclasses) are **not** deprecated: their fragment families do not exist yet.
+The deformable fragments go in one of two spawner slots,
+``volume_deformable_props`` or ``surface_deformable_props``, and that slot sets
+the deformable type. The legacy ``deformable_props`` field has no type of its
+own: it authors a surface deformable when the spawner's ``physics_material`` is
+a :class:`~isaaclab.sim.spawners.materials.SurfaceDeformableBodyMaterialBaseCfg`
+(for example ``PhysxSurfaceDeformableBodyMaterialCfg`` or
+``NewtonSurfaceDeformableBodyMaterialCfg``) and a volume deformable otherwise.
+Use the slot that matches:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - Legacy spawner cfg
+     - Fragment slot
+   * - ``deformable_props=...`` with a surface deformable ``physics_material``
+     - ``surface_deformable_props=[...]``
+   * - ``deformable_props=...`` with any other ``physics_material``, or none
+     - ``volume_deformable_props=[...]``
+
+:class:`~isaaclab_physx.sim.schemas.PhysxSurfaceDeformableBodyCfg` carries the
+two surface-only fields, ``collision_pair_update_frequency`` and
+``collision_iteration_multiplier``. It belongs in the surface slot only; in the
+volume slot it is still authored, with a logged warning. Unlike the legacy class,
+it also applies ``PhysxSurfaceDeformableBodyAPI``, the schema that declares both
+fields.
+
+Three more differences to account for:
+
+* The legacy PhysX cfgs author ``kinematic_enabled=False`` and
+  ``solver_position_iteration_count=16`` even when you leave them unset, while
+  the fragments author only the fields you set. The schema fallbacks have the
+  same values, so the simulation does not change. To keep the authored USD
+  identical (for example when a file-spawned asset authors other values that
+  the legacy cfg used to overwrite), set both explicitly:
+  ``[OmniPhysicsDeformableBodyCfg(kinematic_enabled=False), PhysxDeformableBodyCfg(solver_position_iteration_count=16)]``.
+* The legacy cfg type chose the deformable schemas: ``NewtonDeformableBodyPropertiesCfg``
+  authored Newton's schemas and every other cfg the OmniPhysics ones. With the
+  fragment slots the active physics backend chooses, so use the fragments for
+  the backend you run.
+* A deformable collides through its simulation mesh. With a fragment slot, a bare
+  ``collision_props`` fragment targets the body prim, so key the collision
+  fragments to the simulation mesh instead:
+  ``collision_props={"/sim_mesh": [PhysxCollisionCfg(rest_offset=0.0, contact_offset=0.001)]}``.
+
+.. code-block:: python
+
+   # Deprecated: the physics material decides that this is a surface deformable
+   cloth = sim_utils.MeshRectangleCfg(
+       size=(0.2, 0.2),
+       deformable_props=PhysxDeformableBodyPropertiesCfg(self_collision=True),
+       collision_props=[PhysxCollisionCfg(rest_offset=0.002, contact_offset=0.01)],
+       physics_material=PhysxSurfaceDeformableBodyMaterialCfg(),
+   )
+
+.. code-block:: python
+
+   # Recommended: the slot says surface; one fragment per USD namespace
+   from isaaclab.sim.schemas import OmniPhysicsDeformableBodyCfg
+   from isaaclab_physx.sim.schemas import PhysxCollisionCfg, PhysxDeformableBodyCfg
+
+   cloth = sim_utils.MeshRectangleCfg(
+       size=(0.2, 0.2),
+       surface_deformable_props=[
+           OmniPhysicsDeformableBodyCfg(kinematic_enabled=False),
+           PhysxDeformableBodyCfg(solver_position_iteration_count=16, self_collision=True),
+       ],
+       collision_props={"/sim_mesh": [PhysxCollisionCfg(rest_offset=0.002, contact_offset=0.01)]},
+       physics_material=PhysxSurfaceDeformableBodyMaterialCfg(),
+   )
 
 **Code migration**
 
@@ -584,6 +667,10 @@ of fragments, so one call can author a whole subtree:
    * - ``modify_fixed_tendon_properties``, ``modify_spatial_tendon_properties``
      - :func:`~isaaclab.sim.schemas.apply_fixed_tendon_properties`,
        :func:`~isaaclab.sim.schemas.apply_spatial_tendon_properties`
+   * - ``define_deformable_body_properties``, ``modify_deformable_body_properties``
+     - :func:`~isaaclab.sim.schemas.apply_volume_deformable_properties` or
+       :func:`~isaaclab.sim.schemas.apply_surface_deformable_properties`, matching the
+       deformable type; pass ``create_if_missing=True`` to replace ``define_*``
 
 .. code-block:: python
 
@@ -593,9 +680,8 @@ of fragments, so one call can author a whole subtree:
    # Recommended: authors every matching prim, takes a fragment list
    sim_utils.apply_rigid_body_properties("/World/Robot/.*", [PhysxRigidBodyCfg(linear_damping=0.1)])
 
-The deformable writers (``define_deformable_body_properties``,
-``modify_deformable_body_properties``, ``define_deformable_curve_properties``)
-are not deprecated.
+``define_deformable_curve_properties`` is not deprecated: there is no curve
+fragment family to replace it.
 
 **Silencing the warnings while you migrate**
 

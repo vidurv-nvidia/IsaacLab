@@ -2597,6 +2597,11 @@ def _setup_omniphysics_deformable_body(
         raise RuntimeError(f"Failed to set deformable body API on prim '{prim.GetPath().pathString}'.")
 
 
+@deprecated(
+    "define_deformable_body_properties is deprecated. Use apply_volume_deformable_properties or"
+    " apply_surface_deformable_properties with schema fragments and create_if_missing=True instead;"
+    " define_deformable_body_properties will be removed in 3.2."
+)
 def define_deformable_body_properties(
     prim_path: str,
     cfg: schemas_cfg.DeformableBodyPropertiesBaseCfg,
@@ -2640,6 +2645,12 @@ def define_deformable_body_properties(
         ValueError: When the prim path is not valid.
         ValueError: When the prim has no mesh or multiple meshes.
         RuntimeError: When setting the deformable body properties fails.
+
+    .. deprecated:: 3.1
+        Use :func:`apply_volume_deformable_properties` (for ``deformable_type="volume"``) or
+        :func:`apply_surface_deformable_properties` (for ``deformable_type="surface"``) with schema
+        fragments and ``create_if_missing=True`` instead. The active physics backend, rather than
+        the cfg type, then selects the deformable schemas. This function will be removed in 3.2.
     """
     # get stage handle
     if stage is None:
@@ -2735,9 +2746,15 @@ def define_deformable_body_properties(
             raise RuntimeError(f"Failed to set deformable body API on prim '{prim_path}'.")
 
     # set deformable body properties
-    modify_deformable_body_properties(prim_path, cfg, stage)
+    # Internal delegation skips only the deprecation wrapper, retaining subtree traversal.
+    modify_deformable_body_properties.__wrapped__(prim_path, cfg, stage)
 
 
+@deprecated(
+    "modify_deformable_body_properties is deprecated. Use apply_volume_deformable_properties or"
+    " apply_surface_deformable_properties with schema fragments instead; modify_deformable_body_properties"
+    " will be removed in 3.2."
+)
 @apply_nested
 def modify_deformable_body_properties(
     prim_path: str, cfg: schemas_cfg.DeformableBodyPropertiesBaseCfg, stage: Usd.Stage | None = None
@@ -2781,6 +2798,11 @@ def modify_deformable_body_properties(
 
     Returns:
         True if the properties were successfully set, False otherwise.
+
+    .. deprecated:: 3.1
+        Use :func:`apply_volume_deformable_properties` or :func:`apply_surface_deformable_properties`
+        with schema fragments instead. They match a prim-path expression and, like this function,
+        tune deformable bodies already on the stage. This function will be removed in 3.2.
     """
     # get stage handle
     if stage is None:
