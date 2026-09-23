@@ -95,7 +95,7 @@ def generate_cubes_scene(
         # since no deformable body properties defined, this is just a static collider
         spawn_cfg = sim_utils.MeshCuboidCfg(
             size=(0.2, 0.2, 0.2),
-            collision_props=sim_utils.CollisionPropertiesCfg(),
+            collision_props=sim_utils.UsdPhysicsCollisionCfg(),
         )
     # Create deformable object
     cube_object_cfg = DeformableObjectCfg(
