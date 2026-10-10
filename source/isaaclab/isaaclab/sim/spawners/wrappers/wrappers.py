@@ -88,7 +88,6 @@ def spawn_multi_asset(
             "rigid_props",
             "collision_props",
             "activate_contact_sensors",
-            "deformable_props",
             "volume_deformable_props",
             "surface_deformable_props",
         ]

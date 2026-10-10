@@ -26,12 +26,11 @@ from ...utils import (
     create_prim,
     get_current_stage,
     get_first_matching_child_prim,
-    has_deformable_body_api,
     make_uninstanceable,
     select_usd_variants,
     set_prim_visibility,
 )
-from ..materials import PreviewSurfaceCfg, SurfaceDeformableBodyMaterialBaseCfg
+from ..materials import PreviewSurfaceCfg
 from ..materials.physics_materials import spawn_physics_material
 from ..materials.visual_materials import _author_material_inputs
 from ..utils import (
@@ -339,7 +338,7 @@ Helper functions.
 """
 
 
-def _body_family_targeting(value, prim_path: str, api_type) -> tuple[dict | None, bool]:
+def _body_family_targeting(value, prim_path: str, api_type) -> tuple[dict, bool]:
     """Resolve the target mapping and API-creation flag for one body schema family.
 
     Assets that already carry the family's defining API are tuned in place, wherever the carriers
@@ -355,11 +354,10 @@ def _body_family_targeting(value, prim_path: str, api_type) -> tuple[dict | None
         api_type: The USD API schema that defines the family (e.g. ``UsdPhysics.RigidBodyAPI``).
 
     Returns:
-        A tuple ``(mapping, create_if_missing)``. The mapping is None when the value is a legacy
-        configuration that must route to the legacy writers.
+        A tuple ``(mapping, create_if_missing)``.
     """
     mapping = fragment_mapping(value, "(/.*)?")
-    if mapping is None or not mapping or not bare_fragments(value):
+    if not mapping or not bare_fragments(value):
         return mapping, False
     if subtree_carries_api(prim_path, api_type, get_current_stage()):
         return mapping, False
@@ -370,7 +368,7 @@ def _apply_body_schema_properties(prim_path: str, cfg: from_files_cfg.FileCfg) -
     """Author the rigid-body, collision, mesh-collision, and mass schema families on the spawned asset.
 
     Fragment mappings apply one writer call per entry, in insertion order (later entries override
-    earlier ones per attribute); legacy single cfgs route to the legacy nested writers.
+    earlier ones per attribute).
 
     Args:
         prim_path: The path of the spawn prim that anchors the target patterns.
@@ -383,47 +381,38 @@ def _apply_body_schema_properties(prim_path: str, cfg: from_files_cfg.FileCfg) -
         rigid_props_mapping, rigid_props_create = _body_family_targeting(
             cfg.rigid_props, prim_path, UsdPhysics.RigidBodyAPI
         )
-        if rigid_props_mapping is not None:
-            for pattern, fragments in rigid_props_mapping.items():
-                schemas.apply_rigid_body_properties(
-                    props_expr(prim_path, pattern), fragments, create_if_missing=rigid_props_create
-                )
-        else:
-            schemas.modify_rigid_body_properties(prim_path, cfg.rigid_props)
+        for pattern, fragments in rigid_props_mapping.items():
+            schemas.apply_rigid_body_properties(
+                props_expr(prim_path, pattern), fragments, create_if_missing=rigid_props_create
+            )
     # modify collision properties
     if cfg.collision_props is not None:
         collision_props_mapping, collision_props_create = _body_family_targeting(
             cfg.collision_props, prim_path, UsdPhysics.CollisionAPI
         )
-        if collision_props_mapping is not None:
-            for pattern, fragments in collision_props_mapping.items():
-                schemas.apply_collision_properties(
-                    props_expr(prim_path, pattern), fragments, create_if_missing=collision_props_create
-                )
-        else:
-            schemas.modify_collision_properties(prim_path, cfg.collision_props)
+        for pattern, fragments in collision_props_mapping.items():
+            schemas.apply_collision_properties(
+                props_expr(prim_path, pattern), fragments, create_if_missing=collision_props_create
+            )
     # modify mesh-collision properties on the colliders, including any created by collision_props above
     if cfg.mesh_collision_props is not None:
         apply_mesh_collision_props(cfg.mesh_collision_props, prim_path, "(/.*)?", get_current_stage())
     # modify mass properties
     if cfg.mass_props is not None:
         mass_props_mapping, mass_props_create = _body_family_targeting(cfg.mass_props, prim_path, UsdPhysics.MassAPI)
-        if mass_props_mapping is not None:
-            for pattern, fragments in mass_props_mapping.items():
-                schemas.apply_mass_properties(
-                    props_expr(prim_path, pattern),
-                    fragments,
-                    create_if_missing=cfg.mass_props_create_if_missing or mass_props_create,
-                )
-        else:
-            schemas.modify_mass_properties(prim_path, cfg.mass_props)
+        for pattern, fragments in mass_props_mapping.items():
+            schemas.apply_mass_properties(
+                props_expr(prim_path, pattern),
+                fragments,
+                create_if_missing=cfg.mass_props_create_if_missing or mass_props_create,
+            )
 
 
 def _apply_articulation_schema_properties(prim_path: str, cfg: from_files_cfg.FileCfg) -> None:
     """Author the articulation-root, tendon, and joint-drive schema families on the spawned asset.
 
     Fragment mappings apply one writer call per entry, in insertion order (later entries override
-    earlier ones per attribute); legacy single cfgs route to the legacy nested writers.
+    earlier ones per attribute).
 
     Args:
         prim_path: The path of the spawn prim that anchors the target patterns.
@@ -432,104 +421,49 @@ def _apply_articulation_schema_properties(prim_path: str, cfg: from_files_cfg.Fi
     # modify articulation root properties
     # ``fix_root_link`` is a spawner-level topology flag (not a schema property); it is honored on the
     # fragment path independently of whether any articulation schema properties were supplied.
-    articulation_props = cfg.articulation_props
-    articulation_fix_root_link = cfg.fix_root_link
-    # a legacy single cfg routes to the legacy writer -- it owns its own ``fix_root_link`` field; a
-    # mapping (also an empty one) routes to the fragment writer, where the spawner-level topology
+    # a mapping (also an empty one) routes to the fragment writer, where the spawner-level topology
     # flag is honored even without any schema properties to author.
-    articulation_mapping = fragment_mapping(articulation_props, "(/.*)?")
-    if articulation_props is not None and articulation_mapping is None:
-        if articulation_fix_root_link is not None:
-            logger.warning(
-                f"Ignoring the spawner-level 'fix_root_link={articulation_fix_root_link}' because"
-                " 'articulation_props' is a legacy cfg, which owns its own 'fix_root_link' field. Set"
-                " it on that cfg instead."
-            )
-        schemas.modify_articulation_root_properties(prim_path, articulation_props)
-    else:
-        articulation_entries = list(articulation_mapping.items()) if articulation_mapping else []
-        if articulation_entries:
-            # the root topology is fixed once; entries after the first must not re-fix it
-            for index, (pattern, fragments) in enumerate(articulation_entries):
-                schemas.apply_articulation_root_properties(
-                    props_expr(prim_path, pattern),
-                    fragments,
-                    fix_root_link=articulation_fix_root_link if index == 0 else None,
-                    create_if_missing=cfg.articulation_props_create_if_missing,
-                )
-        elif articulation_fix_root_link is not None:
-            # topology-only path: no fragments to author, but the root link must still be fixed
+    articulation_fix_root_link = cfg.fix_root_link
+    articulation_entries = (
+        list(fragment_mapping(cfg.articulation_props, "(/.*)?").items()) if cfg.articulation_props is not None else []
+    )
+    if articulation_entries:
+        # the root topology is fixed once; entries after the first must not re-fix it
+        for index, (pattern, fragments) in enumerate(articulation_entries):
             schemas.apply_articulation_root_properties(
-                props_expr(prim_path, "(/.*)?"),
-                [],
-                fix_root_link=articulation_fix_root_link,
+                props_expr(prim_path, pattern),
+                fragments,
+                fix_root_link=articulation_fix_root_link if index == 0 else None,
                 create_if_missing=cfg.articulation_props_create_if_missing,
             )
+    elif articulation_fix_root_link is not None:
+        # topology-only path: no fragments to author, but the root link must still be fixed
+        schemas.apply_articulation_root_properties(
+            props_expr(prim_path, "(/.*)?"),
+            [],
+            fix_root_link=articulation_fix_root_link,
+            create_if_missing=cfg.articulation_props_create_if_missing,
+        )
     # modify tendon properties
     if cfg.fixed_tendons_props is not None:
-        fixed_tendons_props_mapping = fragment_mapping(cfg.fixed_tendons_props, "(/.*)?")
-        if fixed_tendons_props_mapping is not None:
-            for pattern, fragments in fixed_tendons_props_mapping.items():
-                schemas.apply_fixed_tendon_properties(props_expr(prim_path, pattern), fragments)
-        else:
-            schemas.modify_fixed_tendon_properties(prim_path, cfg.fixed_tendons_props)
+        for pattern, fragments in fragment_mapping(cfg.fixed_tendons_props, "(/.*)?").items():
+            schemas.apply_fixed_tendon_properties(props_expr(prim_path, pattern), fragments)
     if cfg.spatial_tendons_props is not None:
-        spatial_tendons_props_mapping = fragment_mapping(cfg.spatial_tendons_props, "(/.*)?")
-        if spatial_tendons_props_mapping is not None:
-            for pattern, fragments in spatial_tendons_props_mapping.items():
-                schemas.apply_spatial_tendon_properties(props_expr(prim_path, pattern), fragments)
-        else:
-            schemas.modify_spatial_tendon_properties(prim_path, cfg.spatial_tendons_props)
+        for pattern, fragments in fragment_mapping(cfg.spatial_tendons_props, "(/.*)?").items():
+            schemas.apply_spatial_tendon_properties(props_expr(prim_path, pattern), fragments)
     # define drive API on the joints
     # note: these are only for setting low-level simulation properties. all others should be set or are
     #  and overridden by the articulation/actuator properties.
     if cfg.joint_drive_props is not None:
-        # fragment mapping -> apply_joint_drive_properties (the MujocoJointCfg fragment handles its
-        # own body-gravcomp coupling in apply_mujoco_joint, so the fragment path adds no backend
-        # coupling here); a legacy single cfg -> the pre-existing gravcomp auto-enable +
-        # modify_joint_drive_properties below.
-        joint_drive_props_mapping = fragment_mapping(cfg.joint_drive_props, "(/.*)?")
-        if joint_drive_props_mapping is not None:
-            for pattern, fragments in joint_drive_props_mapping.items():
-                schemas.apply_joint_drive_properties(
-                    props_expr(prim_path, pattern),
-                    fragments,
-                    ensure_drives_exist=cfg.ensure_drives_exist,
-                    create_if_missing=cfg.joint_drive_props_create_if_missing,
-                )
-        else:
-            # auto-enable body-level gravcomp if joint-level actuator gravcomp is requested
-            # without it — actuatorgravcomp has no effect since there are no forces to route.
-            # Only auto-populates when the user did not already set ``gravcomp`` themselves;
-            # an explicit ``MujocoRigidBodyPropertiesCfg(gravcomp=0.5)`` is preserved as-is.
-            from isaaclab_newton.sim.schemas.schemas_cfg import (
-                MujocoJointDrivePropertiesCfg,
-                MujocoRigidBodyCfg,
-                MujocoRigidBodyPropertiesCfg,
+        # the MujocoJointCfg fragment handles its own body-gravcomp coupling in apply_mujoco_joint,
+        # so the spawner adds no backend coupling here
+        for pattern, fragments in fragment_mapping(cfg.joint_drive_props, "(/.*)?").items():
+            schemas.apply_joint_drive_properties(
+                props_expr(prim_path, pattern),
+                fragments,
+                ensure_drives_exist=cfg.ensure_drives_exist,
+                create_if_missing=cfg.joint_drive_props_create_if_missing,
             )
-
-            # gravcomp may be authored either via the legacy MujocoRigidBodyPropertiesCfg or via a
-            # MujocoRigidBodyCfg fragment in the rigid_props mapping. Treat either as "already set".
-            rigid_props_mapping = fragment_mapping(cfg.rigid_props, "(/.*)?")
-            if rigid_props_mapping is not None:
-                rigid_props_list = [fragment for fragments in rigid_props_mapping.values() for fragment in fragments]
-            else:
-                rigid_props_list = [cfg.rigid_props]
-            body_gravcomp_unset = not any(
-                isinstance(f, (MujocoRigidBodyPropertiesCfg, MujocoRigidBodyCfg)) and f.gravcomp is not None
-                for f in rigid_props_list
-            )
-            if (
-                isinstance(cfg.joint_drive_props, MujocoJointDrivePropertiesCfg)
-                and cfg.joint_drive_props.actuatorgravcomp
-                and body_gravcomp_unset
-            ):
-                logger.info(
-                    "Joint-level actuator gravity compensation requires body-level gravcomp."
-                    " Auto-setting MujocoRigidBodyPropertiesCfg(gravcomp=1.0)."
-                )
-                schemas.modify_rigid_body_properties(prim_path, MujocoRigidBodyPropertiesCfg(gravcomp=1.0))
-            schemas.modify_joint_drive_properties(prim_path, cfg.joint_drive_props)
 
 
 def _triangle_mesh_arrays(mesh_source) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
@@ -605,13 +539,7 @@ def _spawn_mesh_data(
 
     # collision properties anchor at the mesh prim, like the mesh converter
     if cfg.collision_props is not None:
-        apply_schema_props(
-            cfg.collision_props,
-            mesh_prim_path,
-            schemas.apply_collision_properties,
-            schemas.define_collision_properties,
-            stage,
-        )
+        apply_schema_props(cfg.collision_props, mesh_prim_path, schemas.apply_collision_properties, stage)
         if cfg.mesh_collision_props is not None:
             apply_mesh_collision_props(cfg.mesh_collision_props, mesh_prim_path, "", stage)
 
@@ -635,12 +563,8 @@ def _spawn_mesh_data(
     # mass and rigid body properties anchor at the root prim
     if cfg.rigid_props is not None:
         if cfg.mass_props is not None:
-            apply_schema_props(
-                cfg.mass_props, prim_path, schemas.apply_mass_properties, schemas.define_mass_properties, stage
-            )
-        apply_schema_props(
-            cfg.rigid_props, prim_path, schemas.apply_rigid_body_properties, schemas.define_rigid_body_properties, stage
-        )
+            apply_schema_props(cfg.mass_props, prim_path, schemas.apply_mass_properties, stage)
+        apply_schema_props(cfg.rigid_props, prim_path, schemas.apply_rigid_body_properties, stage)
 
     return root_prim
 
@@ -678,7 +602,7 @@ def spawn_from_usd_file(
         ValueError: If deformable properties are used with mesh-collision properties.
     """
     # deformable bodies collide through their simulation mesh, which the mesh-collision slot would cook
-    deformable_values = (cfg.deformable_props, cfg.volume_deformable_props, cfg.surface_deformable_props)
+    deformable_values = (cfg.volume_deformable_props, cfg.surface_deformable_props)
     if cfg.mesh_collision_props is not None and any(value is not None for value in deformable_values):
         raise ValueError("Deformable bodies collide through their simulation mesh and take no 'mesh_collision_props'.")
     # In distributed training, serialize asset download and USD stage composition
@@ -731,22 +655,6 @@ def spawn_from_usd_file(
     _apply_body_schema_properties(prim_path, cfg)
     # modify articulation root, tendon, and joint drive properties
     _apply_articulation_schema_properties(prim_path, cfg)
-
-    # define deformable body properties, or modify if deformable body API is present (PhysX only)
-    if cfg.deformable_props is not None:
-        prim = stage.GetPrimAtPath(prim_path)
-        deformable_type = (
-            "surface" if isinstance(cfg.physics_material, SurfaceDeformableBodyMaterialBaseCfg) else "volume"
-        )
-        if has_deformable_body_api(prim):
-            schemas.modify_deformable_body_properties(prim_path, cfg.deformable_props, stage)
-        else:
-            schemas.define_deformable_body_properties(prim_path, cfg.deformable_props, stage, deformable_type)
-        if cfg.mass_props is not None:
-            raise ValueError(
-                """MassPropertiesCfg are not supported for deformable bodies
-                and should be set through deformable_props with mass=<value>."""
-            )
 
     # apply visual material
     if cfg.visual_material is not None:

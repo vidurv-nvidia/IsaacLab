@@ -6,7 +6,6 @@
 __all__ = [
     "spawn_rigid_body_material",
     "spawn_physics_material_from_fragments",
-    "spawn_rigid_body_material_from_fragments",
     "spawn_physics_material",
     "spawn_deformable_body_material",
     "CableMaterialCfg",
@@ -15,12 +14,10 @@ __all__ = [
     "RigidBodyMaterialFragment",
     "UsdPhysicsRigidBodyMaterialCfg",
     "DeformableBodyMaterialBaseCfg",
-    "DeformableBodyMaterialCfg",
     "DeformableMaterialFragment",
     "OmniPhysicsDeformableMaterialCfg",
     "OmniPhysicsSurfaceDeformableMaterialCfg",
     "SurfaceDeformableBodyMaterialBaseCfg",
-    "SurfaceDeformableBodyMaterialCfg",
     "spawn_from_mdl_file",
     "spawn_preview_surface",
     "GlassMdlCfg",
@@ -35,24 +32,20 @@ from .physics_materials import (
     spawn_physics_material,
     spawn_physics_material_from_fragments,
     spawn_rigid_body_material,
-    spawn_rigid_body_material_from_fragments,
 )
 from .physics_materials_cfg import (
     CableMaterialCfg,
     DeformableBodyMaterialBaseCfg,
-    DeformableBodyMaterialCfg,
     PhysicsMaterialCfg,
     RigidBodyMaterialBaseCfg,
     RigidBodyMaterialFragment,
     UsdPhysicsRigidBodyMaterialCfg,
     DeformableBodyMaterialBaseCfg,
-    DeformableBodyMaterialCfg,
     DeformableMaterialFragment,
     OmniPhysicsDeformableMaterialCfg,
     OmniPhysicsSurfaceDeformableMaterialCfg,
 
     SurfaceDeformableBodyMaterialBaseCfg,
-    SurfaceDeformableBodyMaterialCfg,
     UsdPhysicsRigidBodyMaterialCfg,
 )
 from .visual_materials import spawn_from_mdl_file, spawn_preview_surface

@@ -36,68 +36,13 @@ from ...utils.module import lazy_export
 
 _stub_getattr, _stub_dir, __all__ = lazy_export()
 
-# Names that moved out of this module into ``isaaclab_physx.sim.schemas``.
-# Resolved lazily on first access so importing ``isaaclab.sim.schemas`` does
-# not require ``isaaclab_physx`` to be installed.
-_PHYSX_FORWARDS = frozenset(
-    {
-        "RigidBodyPropertiesCfg",
-        "JointDrivePropertiesCfg",
-        "PhysxRigidBodyPropertiesCfg",
-        "PhysxJointDrivePropertiesCfg",
-        "CollisionPropertiesCfg",
-        "PhysxCollisionPropertiesCfg",
-        "DeformableBodyPropertiesCfg",
-        "PhysxDeformableBodyPropertiesCfg",
-        "ArticulationRootPropertiesCfg",
-        "PhysxArticulationRootPropertiesCfg",
-        "MeshCollisionPropertiesCfg",
-        "ConvexHullPropertiesCfg",
-        "ConvexDecompositionPropertiesCfg",
-        "TriangleMeshPropertiesCfg",
-        "TriangleMeshSimplificationPropertiesCfg",
-        "SDFMeshPropertiesCfg",
-        "PhysxConvexHullPropertiesCfg",
-        "PhysxConvexDecompositionPropertiesCfg",
-        "PhysxTriangleMeshPropertiesCfg",
-        "PhysxTriangleMeshSimplificationPropertiesCfg",
-        "PhysxSDFMeshPropertiesCfg",
-        "FixedTendonPropertiesCfg",
-        "SpatialTendonPropertiesCfg",
-        "PhysxFixedTendonPropertiesCfg",
-        "PhysxSpatialTendonPropertiesCfg",
-    }
-)
-
 # Names that moved out of this module into ``isaaclab_newton.sim.schemas``.
 # Resolved lazily on first access so importing ``isaaclab.sim.schemas`` does
 # not require ``isaaclab_newton`` to be installed.
-_NEWTON_FORWARDS = frozenset(
-    {
-        "MujocoRigidBodyPropertiesCfg",
-        "MujocoJointDrivePropertiesCfg",
-        "NewtonRigidBodyPropertiesCfg",
-        "NewtonJointDrivePropertiesCfg",
-        "NewtonCollisionPropertiesCfg",
-        "NewtonMeshCollisionPropertiesCfg",
-        "NewtonMaterialPropertiesCfg",
-        "NewtonArticulationRootPropertiesCfg",
-        "NewtonSDFCollisionPropertiesCfg",
-    }
-)
+_NEWTON_FORWARDS = frozenset({"NewtonMaterialPropertiesCfg"})
 
 
 def __getattr__(name):
-    if name in _PHYSX_FORWARDS:
-        try:
-            from isaaclab_physx.sim.schemas import schemas_cfg as _physx_cfg
-        except ImportError as e:
-            raise ImportError(
-                f"'isaaclab.sim.schemas.{name}' has moved to 'isaaclab_physx.sim.schemas'."
-                " Install the isaaclab_physx extension or update your import. This forwarding"
-                " shim is scheduled for removal in 4.0."
-            ) from e
-        return getattr(_physx_cfg, name)
     if name in _NEWTON_FORWARDS:
         try:
             from isaaclab_newton.sim.schemas import schemas_cfg as _newton_cfg
@@ -112,4 +57,4 @@ def __getattr__(name):
 
 
 def __dir__():
-    return sorted(set(_stub_dir()) | _PHYSX_FORWARDS | _NEWTON_FORWARDS)
+    return sorted(set(_stub_dir()) | _NEWTON_FORWARDS)

@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 __all__ = [
-    "DeformableBodyMaterialCfg",
     "PhysXDeformableMaterialCfg",
     "PhysxDeformableBodyMaterialCfg",
     "PhysxDeformableMaterialCfg",
@@ -12,12 +11,9 @@ __all__ = [
     "PhysxRigidBodyMaterialCfg",
     "PhysxSurfaceDeformableBodyMaterialCfg",
     "PhysxSurfaceDeformableMaterialCfg",
-    "RigidBodyMaterialCfg",
-    "SurfaceDeformableBodyMaterialCfg",
 ]
 
 from .physics_materials_cfg import (
-    DeformableBodyMaterialCfg,
     PhysXDeformableMaterialCfg,
     PhysxDeformableBodyMaterialCfg,
     PhysxDeformableMaterialCfg,
@@ -25,6 +21,4 @@ from .physics_materials_cfg import (
     PhysxRigidBodyMaterialCfg,
     PhysxSurfaceDeformableBodyMaterialCfg,
     PhysxSurfaceDeformableMaterialCfg,
-    RigidBodyMaterialCfg,
-    SurfaceDeformableBodyMaterialCfg,
 )

@@ -325,13 +325,7 @@ def spawn_geom_from_prim_type(
 
     # collision properties anchor at the geometry prim
     if cfg.collision_props is not None:
-        apply_schema_props(
-            cfg.collision_props,
-            mesh_prim_path,
-            schemas.apply_collision_properties,
-            schemas.define_collision_properties,
-            stage,
-        )
+        apply_schema_props(cfg.collision_props, mesh_prim_path, schemas.apply_collision_properties, stage)
     # mesh-collision properties target the collider authored above; cables carry none
     if isinstance(cfg, RigidObjectSpawnerCfg) and cfg.mesh_collision_props is not None:
         apply_mesh_collision_props(cfg.mesh_collision_props, mesh_prim_path, "", stage)
@@ -356,15 +350,7 @@ def spawn_geom_from_prim_type(
     # geometry can later be made instanceable; cables carry neither
     if isinstance(cfg, RigidObjectSpawnerCfg):
         if cfg.mass_props is not None:
-            apply_schema_props(
-                cfg.mass_props, prim_path, schemas.apply_mass_properties, schemas.define_mass_properties, stage
-            )
+            apply_schema_props(cfg.mass_props, prim_path, schemas.apply_mass_properties, stage)
         if cfg.rigid_props is not None:
-            apply_schema_props(
-                cfg.rigid_props,
-                prim_path,
-                schemas.apply_rigid_body_properties,
-                schemas.define_rigid_body_properties,
-                stage,
-            )
+            apply_schema_props(cfg.rigid_props, prim_path, schemas.apply_rigid_body_properties, stage)
     return prim

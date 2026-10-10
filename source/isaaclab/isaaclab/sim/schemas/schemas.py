@@ -13,14 +13,11 @@ from collections.abc import Callable, Iterable
 
 import numpy as np
 import warp as wp
-from typing_extensions import deprecated
 
 from pxr import Gf, Sdf, Usd, UsdGeom, UsdPhysics
 
-from ...utils import to_dict
 from ...utils.string import to_camel_case
 from ..utils import (
-    apply_nested,
     create_prim,
     find_global_fixed_joint_prim,
     find_matching_prims,
@@ -53,69 +50,6 @@ MESH_APPROXIMATION_TOKENS = {
     "meshSimplification": UsdPhysics.Tokens.meshSimplification,
     "sdf": "sdf",  # PhysX SDF mesh token; use string (pxr.Tf.Token not available in all envs)
 }
-
-
-# Lazy accessors. These lists were used by the legacy ``usd_api`` / ``physx_api`` instance-
-# field dispatch in ``modify_mesh_collision_properties``. The new metadata-driven writer
-# does not consult them, but they are preserved as a public API so external code that
-# imported them keeps working. The PhysX leaves now live in ``isaaclab_physx``; we resolve
-# them lazily so this module does not import ``isaaclab_physx`` at load time.
-def _get_physx_mesh_collision_cfgs() -> list:
-    from isaaclab_physx.sim.schemas import schemas_cfg as _physx_cfg
-
-    return [
-        _physx_cfg.PhysxConvexHullPropertiesCfg,
-        _physx_cfg.PhysxConvexDecompositionPropertiesCfg,
-        _physx_cfg.PhysxTriangleMeshPropertiesCfg,
-        _physx_cfg.PhysxTriangleMeshSimplificationPropertiesCfg,
-        _physx_cfg.PhysxSDFMeshPropertiesCfg,
-        # legacy deprecation aliases
-        _physx_cfg.ConvexHullPropertiesCfg,
-        _physx_cfg.ConvexDecompositionPropertiesCfg,
-        _physx_cfg.TriangleMeshPropertiesCfg,
-        _physx_cfg.TriangleMeshSimplificationPropertiesCfg,
-        _physx_cfg.SDFMeshPropertiesCfg,
-    ]
-
-
-class _LazyList:
-    """Lazy list whose contents are produced on first access.
-
-    Used to keep the public ``PHYSX_MESH_COLLISION_CFGS`` / ``USD_MESH_COLLISION_CFGS`` symbols
-    resolvable for callers that imported them, without triggering an ``isaaclab_physx`` import
-    at this module's load time.
-    """
-
-    def __init__(self, factory):
-        self._factory = factory
-        self._cache = None
-
-    def _resolved(self):
-        if self._cache is None:
-            self._cache = list(self._factory())
-        return self._cache
-
-    def __iter__(self):
-        return iter(self._resolved())
-
-    def __contains__(self, item):
-        return item in self._resolved()
-
-    def __len__(self):
-        return len(self._resolved())
-
-    def __getitem__(self, index):
-        return self._resolved()[index]
-
-
-PHYSX_MESH_COLLISION_CFGS = _LazyList(_get_physx_mesh_collision_cfgs)
-
-USD_MESH_COLLISION_CFGS = _LazyList(
-    lambda: [
-        schemas_cfg.BoundingCubePropertiesCfg,
-        schemas_cfg.BoundingSpherePropertiesCfg,
-    ]
-)
 
 
 """
@@ -161,8 +95,8 @@ def apply_namespaced_schemas(prim, cfg, cfg_dict: dict) -> None:
        class that declares it (walking the MRO). Each group writes under that class's
        ``_usd_namespace`` and applies that class's ``_usd_applied_schema`` (if any). This
        means base-class fields go under the base namespace (e.g. ``physics:*``) even when
-       the cfg instance is a PhysX subclass -- the subclass's ``_usd_namespace =
-       "physxRigidBody"`` only governs *its own* fields.
+       the cfg instance is a backend subclass -- the subclass's ``_usd_namespace`` (e.g.
+       ``"physxMaterial"``) only governs *its own* fields.
 
     Args:
         prim: The USD prim to author on.
@@ -174,8 +108,8 @@ def apply_namespaced_schemas(prim, cfg, cfg_dict: dict) -> None:
     """
     cfg_class = type(cfg)
 
-    # 1. Per-field exceptions (overrides per-class routing for codeless-PhysX-namespace
-    #    fields like ``disable_gravity`` on RigidBodyBaseCfg).
+    # 1. Per-field exceptions (override per-class routing for fields whose USD home is another
+    #    schema's namespace).
     field_exceptions = getattr(cfg, "_usd_field_exceptions", {}) or {}
     for applied_schema, (exc_ns, fields) in field_exceptions.items():
         triggered: list[tuple[str, object]] = []
@@ -314,10 +248,7 @@ def apply_articulation_root_properties(
     fragments = list(fragments)
     for fragment in fragments:
         if not isinstance(fragment, schemas_cfg.ArticulationRootFragment):
-            raise TypeError(
-                f"Expected ArticulationRootFragment, got '{type(fragment).__name__}'."
-                " Pass legacy cfgs to modify_articulation_root_properties."
-            )
+            raise TypeError(f"Expected ArticulationRootFragment, got '{type(fragment).__name__}'.")
     if stage is None:
         stage = get_current_stage()
     if not fragments and fix_root_link is None:
@@ -365,42 +296,6 @@ def apply_articulation_root_properties(
             success = bool(fragment.func(fragment, root_path, stage)) and success
 
     return success
-
-
-@deprecated(
-    "define_articulation_root_properties is deprecated. Use apply_articulation_root_properties with schema fragments"
-    " instead; define_articulation_root_properties will be removed in 3.2."
-)
-def define_articulation_root_properties(
-    prim_path: str, cfg: schemas_cfg.ArticulationRootBaseCfg, stage: Usd.Stage | None = None
-):
-    """Apply the articulation root schema on the input prim and set its properties.
-
-    See :func:`modify_articulation_root_properties` for more details on how the properties are set.
-
-    Args:
-        prim_path: The prim path where to apply the articulation root schema.
-        cfg: The configuration for the articulation root.
-        stage: The stage where to find the prim. Defaults to None, in which case the
-            current stage is used.
-
-    Raises:
-        ValueError: When the prim path is not valid.
-        TypeError: When the prim already has conflicting API schemas.
-
-    .. deprecated:: 3.1
-        Use :func:`apply_articulation_root_properties` with schema fragments instead. This function will be removed
-        in 3.2.
-    """
-    if stage is None:
-        stage = get_current_stage()
-    prim = stage.GetPrimAtPath(prim_path)
-    if not prim.IsValid():
-        raise ValueError(f"Prim path '{prim_path}' is not valid.")
-    if not UsdPhysics.ArticulationRootAPI(prim):
-        UsdPhysics.ArticulationRootAPI.Apply(prim)
-    # ``__wrapped__`` skips only the deprecation warning and keeps the nested traversal
-    modify_articulation_root_properties.__wrapped__(prim_path, cfg, stage)
 
 
 def create_world_fixed_joint(articulation_prim: Usd.Prim, stage: Usd.Stage) -> None:
@@ -452,149 +347,6 @@ def create_world_fixed_joint(articulation_prim: Usd.Prim, stage: Usd.Stage) -> N
     joint.CreateLocalRot1Attr().Set(Gf.Quatf(1.0))
     joint.CreateBreakForceAttr().Set(max_break)
     joint.CreateBreakTorqueAttr().Set(max_break)
-
-
-@deprecated(
-    "modify_articulation_root_properties is deprecated. Use apply_articulation_root_properties with schema fragments"
-    " instead; modify_articulation_root_properties will be removed in 3.2."
-)
-@apply_nested
-def modify_articulation_root_properties(
-    prim_path: str, cfg: schemas_cfg.ArticulationRootBaseCfg, stage: Usd.Stage | None = None
-) -> bool:
-    """Modify PhysX parameters for an articulation root prim.
-
-    The `articulation root`_ marks the root of an articulation tree. For floating articulations, this should be on
-    the root body. For fixed articulations, this API can be on a direct or indirect parent of the root joint
-    which is fixed to the world.
-
-    The schema comprises of attributes that belong to the `ArticulationRootAPI`_ and `PhysxArticulationAPI`_.
-    schemas. The latter contains the PhysX parameters for the articulation root.
-
-    The properties are applied to the articulation root prim. The common properties (such as solver position
-    and velocity iteration counts, sleep threshold, stabilization threshold) take precedence over those specified
-    in the rigid body schemas for all the rigid bodies in the articulation.
-
-    .. caution::
-        When the attribute :attr:`schemas_cfg.ArticulationRootPropertiesCfg.fix_root_link` is set to True,
-        a fixed joint is created between the root link and the world frame (if it does not already exist). However,
-        to deal with physics parser limitations, the articulation root schema needs to be applied to the parent of
-        the root link.
-
-    .. note::
-        This function is decorated with :func:`apply_nested` that set the properties to all the prims
-        (that have the schema applied on them) under the input prim path.
-
-    .. _articulation root: https://nvidia-omniverse.github.io/PhysX/physx/5.4.1/docs/Articulations.html
-    .. _ArticulationRootAPI: https://openusd.org/dev/api/class_usd_physics_articulation_root_a_p_i.html
-    .. _PhysxArticulationAPI: https://docs.omniverse.nvidia.com/kit/docs/omni_usd_schema_physics/104.2/class_physx_schema_physx_articulation_a_p_i.html
-
-    Args:
-        prim_path: The prim path to the articulation root.
-        cfg: The configuration for the articulation root.
-        stage: The stage where to find the prim. Defaults to None, in which case the
-            current stage is used.
-
-    Returns:
-        True if the properties were successfully set, False otherwise.
-
-    Raises:
-        NotImplementedError: When the root prim is not a rigid body and a fixed joint is to be created.
-
-    .. deprecated:: 3.1
-        Use :func:`apply_articulation_root_properties` with schema fragments instead. This function will be removed
-        in 3.2.
-    """
-    if stage is None:
-        stage = get_current_stage()
-    articulation_prim = stage.GetPrimAtPath(prim_path)
-    if not UsdPhysics.ArticulationRootAPI(articulation_prim):
-        return False
-
-    cfg_dict = {f.name: getattr(cfg, f.name) for f in dataclasses.fields(cfg)}
-    # writer-side (non-USD) flag; the joint is processed after the attribute writes
-    fix_root_link = cfg_dict.pop("fix_root_link", None)
-    apply_namespaced_schemas(articulation_prim, cfg, cfg_dict)
-
-    if fix_root_link is not None:
-        existing_fixed_joint_prim = find_global_fixed_joint_prim(prim_path, stage=stage)
-        # enable/disable an existing world joint, otherwise create one
-        if existing_fixed_joint_prim is not None:
-            logger.info(
-                f"Found an existing fixed joint for the articulation: '{prim_path}'. Setting it to: {fix_root_link}."
-            )
-            existing_fixed_joint_prim.GetJointEnabledAttr().Set(fix_root_link)
-        elif fix_root_link:
-            logger.info(f"Creating a fixed joint for the articulation: '{prim_path}'.")
-
-            # the root prim must be a rigid body: there is no obvious way to get the first rigid body link
-            # identified by the PhysX parser otherwise
-            if not articulation_prim.HasAPI(UsdPhysics.RigidBodyAPI):
-                raise NotImplementedError(
-                    f"The articulation prim '{prim_path}' does not have the RigidBodyAPI applied."
-                    " To create a fixed joint, we need to determine the first rigid body link in"
-                    " the articulation tree. However, this is not implemented yet."
-                )
-
-            create_world_fixed_joint(articulation_prim, stage)
-
-            # The PhysX parser treats a fixed joint on a rigid body as part of a maximal-coordinate tree
-            # rather than a fixed-base articulation; moving the articulation root to the parent avoids this.
-            parent_prim = articulation_prim.GetParent()
-            UsdPhysics.ArticulationRootAPI.Apply(parent_prim)
-            if "PhysxArticulationAPI" not in parent_prim.GetAppliedSchemas():
-                parent_prim.AddAppliedSchema("PhysxArticulationAPI")
-
-            # -- usd attributes
-            usd_articulation_api = UsdPhysics.ArticulationRootAPI(articulation_prim)
-            for attr_name in usd_articulation_api.GetSchemaAttributeNames():
-                attr = articulation_prim.GetAttribute(attr_name)
-                parent_attr = parent_prim.GetAttribute(attr_name)
-                if not parent_attr:
-                    parent_attr = parent_prim.CreateAttribute(attr_name, attr.GetTypeName())
-                parent_attr.Set(attr.Get())
-            # -- physx attributes (copy by name prefix)
-            for attr in articulation_prim.GetAttributes():
-                aname = attr.GetName()
-                if aname.startswith("physxArticulation:"):
-                    parent_attr = parent_prim.GetAttribute(aname)
-                    if not parent_attr:
-                        parent_attr = parent_prim.CreateAttribute(aname, attr.GetTypeName())
-                    parent_attr.Set(attr.Get())
-            # -- Newton root schema and its authored properties
-            newton_root_schema = "NewtonArticulationRootAPI"
-            if newton_root_schema in articulation_prim.GetAppliedSchemas():
-                if not parent_prim.AddAppliedSchema(newton_root_schema):
-                    raise RuntimeError(f"Failed to apply '{newton_root_schema}' to '{parent_prim.GetPath()}'.")
-                schema_definition = Usd.SchemaRegistry().FindAppliedAPIPrimDefinition(newton_root_schema)
-                newton_properties = []
-                if schema_definition is not None:
-                    for property_name in schema_definition.GetPropertyNames():
-                        prop = articulation_prim.GetProperty(property_name)
-                        if prop and prop.IsAuthored():
-                            newton_properties.append(prop)
-                for prop in newton_properties:
-                    if not prop.FlattenTo(parent_prim):
-                        raise RuntimeError(f"Failed to move '{prop.GetPath()}' to '{parent_prim.GetPath()}'.")
-                for prop in newton_properties:
-                    if not articulation_prim.RemoveProperty(prop.GetName()):
-                        raise RuntimeError(f"Failed to remove '{prop.GetPath()}' from the former articulation root.")
-                if not articulation_prim.RemoveAppliedSchema(newton_root_schema):
-                    raise RuntimeError(f"Failed to remove '{newton_root_schema}' from '{articulation_prim.GetPath()}'.")
-
-            articulation_prim.RemoveAppliedSchema("PhysxArticulationAPI")
-            articulation_prim.RemoveAPI(UsdPhysics.ArticulationRootAPI)
-            articulation_prim = parent_prim
-
-    # mirrored after any root relocation so the Newton API does not recreate a root on the former root link
-    enabled_self_collisions = cfg_dict.get("enabled_self_collisions")
-    if enabled_self_collisions is not None:
-        if "NewtonArticulationRootAPI" not in articulation_prim.GetAppliedSchemas():
-            articulation_prim.AddAppliedSchema("NewtonArticulationRootAPI")
-        safe_set_attribute_on_usd_prim(
-            articulation_prim, "newton:selfCollisionEnabled", enabled_self_collisions, camel_case=False
-        )
-    return True
 
 
 """
@@ -1009,93 +761,6 @@ def apply_mesh_collision_properties(
     return success
 
 
-@deprecated(
-    "define_rigid_body_properties is deprecated. Use apply_rigid_body_properties with schema fragments"
-    " instead; define_rigid_body_properties will be removed in 3.2."
-)
-def define_rigid_body_properties(prim_path: str, cfg: schemas_cfg.RigidBodyBaseCfg, stage: Usd.Stage | None = None):
-    """Apply the rigid body schema on the input prim and set its properties.
-
-    See :func:`modify_rigid_body_properties` for more details on how the properties are set.
-
-    Args:
-        prim_path: The prim path where to apply the rigid body schema.
-        cfg: The configuration for the rigid body.
-        stage: The stage where to find the prim. Defaults to None, in which case the
-            current stage is used.
-
-    Raises:
-        ValueError: When the prim path is not valid.
-        TypeError: When the prim already has conflicting API schemas.
-
-    .. deprecated:: 3.1
-        Use :func:`apply_rigid_body_properties` with schema fragments instead. This function will be removed
-        in 3.2.
-    """
-    if stage is None:
-        stage = get_current_stage()
-    prim = stage.GetPrimAtPath(prim_path)
-    if not prim.IsValid():
-        raise ValueError(f"Prim path '{prim_path}' is not valid.")
-    if not UsdPhysics.RigidBodyAPI(prim):
-        UsdPhysics.RigidBodyAPI.Apply(prim)
-    modify_rigid_body_properties.__wrapped__(prim_path, cfg, stage)
-
-
-# rigid bodies nest when child links are authored under their parent link prim (URDF importer
-# in Isaac Sim 6.0+), so keep descending after a success to reach every link
-@deprecated(
-    "modify_rigid_body_properties is deprecated. Use apply_rigid_body_properties with schema fragments"
-    " instead; modify_rigid_body_properties will be removed in 3.2."
-)
-@apply_nested(stop_on_success=False)
-def modify_rigid_body_properties(
-    prim_path: str, cfg: schemas_cfg.RigidBodyBaseCfg, stage: Usd.Stage | None = None
-) -> bool:
-    """Modify parameters for a rigid body prim.
-
-    A `rigid body`_ is a single body that can be simulated by a physics engine. It can be either dynamic
-    or kinematic. A dynamic body responds to forces and collisions. A `kinematic body`_ can be moved by
-    the user, but does not respond to forces.
-
-    Solver-common properties (from `RigidBodyAPI`_) are always written. Solver-specific properties are
-    written based on the cfg subclass metadata (``_usd_namespace``, ``_usd_applied_schema``).
-
-    .. note::
-        This function is decorated with :func:`apply_nested` that sets the properties to all the prims
-        (that have the schema applied on them) under the input prim path.
-
-    .. _rigid body: https://nvidia-omniverse.github.io/PhysX/physx/5.4.1/docs/RigidBodyOverview.html
-    .. _kinematic body: https://openusd.org/release/wp_rigid_body_physics.html#kinematic-bodies
-    .. _RigidBodyAPI: https://openusd.org/dev/api/class_usd_physics_rigid_body_a_p_i.html
-
-    Args:
-        prim_path: The prim path to the rigid body.
-        cfg: The configuration for the rigid body. Accepts
-            :class:`~schemas_cfg.RigidBodyBaseCfg` for solver-common properties,
-            :class:`~schemas_cfg.PhysxRigidBodyPropertiesCfg` for PhysX properties, or
-            :class:`~schemas_cfg.MujocoRigidBodyPropertiesCfg` for Newton (MuJoCo) properties.
-        stage: The stage where to find the prim. Defaults to None, in which case the
-            current stage is used.
-
-    Returns:
-        True if the properties were successfully set, False otherwise.
-
-    .. deprecated:: 3.1
-        Use :func:`apply_rigid_body_properties` with schema fragments instead. This function will be removed
-        in 3.2.
-    """
-    if stage is None:
-        stage = get_current_stage()
-    rigid_body_prim = stage.GetPrimAtPath(prim_path)
-    if not UsdPhysics.RigidBodyAPI(rigid_body_prim):
-        return False
-    # base fields route to ``physics:*``, ``disable_gravity`` via field exceptions, PhysX-subclass
-    # fields to ``physxRigidBody:*``
-    apply_namespaced_schemas(rigid_body_prim, cfg, {f.name: getattr(cfg, f.name) for f in dataclasses.fields(cfg)})
-    return True
-
-
 """
 Collision properties.
 """
@@ -1139,93 +804,6 @@ def apply_collision_properties(
     )
 
 
-@deprecated(
-    "define_collision_properties is deprecated. Use apply_collision_properties with schema fragments"
-    " instead; define_collision_properties will be removed in 3.2."
-)
-def define_collision_properties(
-    prim_path: str, cfg: schemas_cfg.CollisionPropertiesCfg, stage: Usd.Stage | None = None
-):
-    """Apply the collision schema on the input prim and set its properties.
-
-    See :func:`modify_collision_properties` for more details on how the properties are set.
-
-    Args:
-        prim_path: The prim path where to apply the rigid body schema.
-        cfg: The configuration for the collider.
-        stage: The stage where to find the prim. Defaults to None, in which case the
-            current stage is used.
-
-    Raises:
-        ValueError: When the prim path is not valid.
-
-    .. deprecated:: 3.1
-        Use :func:`apply_collision_properties` with schema fragments instead. This function will be removed
-        in 3.2.
-    """
-    if stage is None:
-        stage = get_current_stage()
-    prim = stage.GetPrimAtPath(prim_path)
-    if not prim.IsValid():
-        raise ValueError(f"Prim path '{prim_path}' is not valid.")
-    if not UsdPhysics.CollisionAPI(prim):
-        UsdPhysics.CollisionAPI.Apply(prim)
-    modify_collision_properties.__wrapped__(prim_path, cfg, stage)
-
-
-@deprecated(
-    "modify_collision_properties is deprecated. Use apply_collision_properties with schema fragments"
-    " instead; modify_collision_properties will be removed in 3.2."
-)
-@apply_nested
-def modify_collision_properties(
-    prim_path: str, cfg: schemas_cfg.CollisionPropertiesCfg, stage: Usd.Stage | None = None
-) -> bool:
-    """Modify PhysX properties of collider prim.
-
-    These properties are based on the `UsdPhysics.CollisionAPI`_ and `PhysxSchema.PhysxCollisionAPI`_ schemas.
-    For more information on the properties, please refer to the official documentation.
-
-    Tuning these parameters influence the contact behavior of the rigid body. For more information on
-    tune them and their effect on the simulation, please refer to the
-    `PhysX documentation <https://nvidia-omniverse.github.io/PhysX/physx/5.4.1/docs/AdvancedCollisionDetection.html>`__.
-
-    .. note::
-        This function is decorated with :func:`apply_nested` that sets the properties to all the prims
-        (that have the schema applied on them) under the input prim path.
-
-    .. _UsdPhysics.CollisionAPI: https://openusd.org/dev/api/class_usd_physics_collision_a_p_i.html
-    .. _PhysxSchema.PhysxCollisionAPI: https://docs.omniverse.nvidia.com/kit/docs/omni_usd_schema_physics/104.2/class_physx_schema_physx_collision_a_p_i.html
-
-    Args:
-        prim_path: The prim path of parent.
-        cfg: The configuration for the collider.
-        stage: The stage where to find the prim. Defaults to None, in which case the
-            current stage is used.
-
-    Returns:
-        True if the properties were successfully set, False otherwise.
-
-    .. deprecated:: 3.1
-        Use :func:`apply_collision_properties` with schema fragments instead. This function will be removed
-        in 3.2.
-    """
-    if stage is None:
-        stage = get_current_stage()
-    collider_prim = stage.GetPrimAtPath(prim_path)
-    if not UsdPhysics.CollisionAPI(collider_prim):
-        return False
-    cfg_dict = {f.name: getattr(cfg, f.name) for f in dataclasses.fields(cfg)}
-    # the nested mesh-collision cfg is dispatched to its own legacy writer
-    mesh_collision_cfg = cfg_dict.pop("mesh_collision_property", None)
-    if mesh_collision_cfg is not None:
-        modify_mesh_collision_properties.__wrapped__(prim_path, mesh_collision_cfg, stage)
-    # ``collision_enabled`` routes to ``physics:*``, the offsets via field exceptions, PhysX-subclass
-    # fields to ``physxCollision:*``
-    apply_namespaced_schemas(collider_prim, cfg, cfg_dict)
-    return True
-
-
 """
 Mass properties.
 """
@@ -1263,87 +841,6 @@ def apply_mass_properties(
         True if every target and fragment succeeded and no instanced prim was skipped.
     """
     return _apply_api_fragments(prim_path_expr, fragments, UsdPhysics.MassAPI, "mass", create_if_missing, stage)
-
-
-@deprecated(
-    "define_mass_properties is deprecated. Use apply_mass_properties with schema fragments"
-    " instead; define_mass_properties will be removed in 3.2."
-)
-def define_mass_properties(prim_path: str, cfg: schemas_cfg.MassPropertiesCfg, stage: Usd.Stage | None = None):
-    """Apply the mass schema on the input prim and set its properties.
-
-    See :func:`modify_mass_properties` for more details on how the properties are set.
-
-    Args:
-        prim_path: The prim path where to apply the rigid body schema.
-        cfg: The configuration for the mass properties.
-        stage: The stage where to find the prim. Defaults to None, in which case the
-            current stage is used.
-
-    Raises:
-        ValueError: When the prim path is not valid.
-
-    .. deprecated:: 3.1
-        Use :func:`apply_mass_properties` with schema fragments instead. This function will be removed
-        in 3.2.
-    """
-    if stage is None:
-        stage = get_current_stage()
-    prim = stage.GetPrimAtPath(prim_path)
-    if not prim.IsValid():
-        raise ValueError(f"Prim path '{prim_path}' is not valid.")
-    if not UsdPhysics.MassAPI(prim):
-        UsdPhysics.MassAPI.Apply(prim)
-    modify_mass_properties.__wrapped__(prim_path, cfg, stage)
-
-
-# mass is authored on the same link prims as the rigid-body schema, which may nest (see
-# modify_rigid_body_properties above), so keep descending after a success
-@deprecated(
-    "modify_mass_properties is deprecated. Use apply_mass_properties with schema fragments"
-    " instead; modify_mass_properties will be removed in 3.2."
-)
-@apply_nested(stop_on_success=False)
-def modify_mass_properties(prim_path: str, cfg: schemas_cfg.MassPropertiesCfg, stage: Usd.Stage | None = None) -> bool:
-    """Set properties for the mass of a rigid body prim.
-
-    These properties are based on the `UsdPhysics.MassAPI` schema. If the mass is not defined, the density is used
-    to compute the mass. However, in that case, a collision approximation of the rigid body is used to
-    compute the density. For more information on the properties, please refer to the
-    `documentation <https://openusd.org/release/wp_rigid_body_physics.html#body-mass-properties>`__.
-
-    .. caution::
-
-        The mass of an object can be specified in multiple ways and have several conflicting settings
-        that are resolved based on precedence. Please make sure to understand the precedence rules
-        before using this property.
-
-    .. note::
-        This function is decorated with :func:`apply_nested` that sets the properties to all the prims
-        (that have the schema applied on them) under the input prim path.
-
-    .. UsdPhysics.MassAPI: https://openusd.org/dev/api/class_usd_physics_mass_a_p_i.html
-
-    Args:
-        prim_path: The prim path of the rigid body.
-        cfg: The configuration for the mass properties.
-        stage: The stage where to find the prim. Defaults to None, in which case the
-            current stage is used.
-
-    Returns:
-        True if the properties were successfully set, False otherwise.
-
-    .. deprecated:: 3.1
-        Use :func:`apply_mass_properties` with schema fragments instead. This function will be removed
-        in 3.2.
-    """
-    if stage is None:
-        stage = get_current_stage()
-    rigid_prim = stage.GetPrimAtPath(prim_path)
-    if not UsdPhysics.MassAPI(rigid_prim):
-        return False
-    apply_namespaced_schemas(rigid_prim, cfg, {f.name: getattr(cfg, f.name) for f in dataclasses.fields(cfg)})
-    return True
 
 
 """
@@ -1433,8 +930,7 @@ def apply_drive(cfg, prim_path: str, stage: Usd.Stage | None = None) -> bool:
 
     This is the override ``func`` for the ``UsdPhysics.DriveAPI`` fragment: the drive attributes
     live under a multi-instance schema, so the generic :func:`apply_namespaced` writer cannot be
-    used. The writer reproduces the solver-common drive logic of
-    :func:`modify_joint_drive_properties`:
+    used. The writer:
 
     * Selects the drive instance: ``"angular"`` for a revolute joint, ``"linear"`` for a prismatic
       joint. For any other prim type, the function is a no-op and returns ``False``.
@@ -1535,9 +1031,7 @@ def apply_joint_drive_properties(
             stage is used.
         ensure_drives_exist: If True, write a minimal stiffness (``1e-3``) to any drive whose
             authored stiffness *and* damping are both zero, so that backends (e.g. Newton) treat
-            the drive as active. Reproduces the legacy
-            :attr:`~isaaclab.sim.schemas.JointDriveBaseCfg.ensure_drives_exist` behaviour. This is
-            a spawner-level flag, not a fragment field.
+            the drive as active. This is a spawner-level flag, not a fragment field.
         create_if_missing: If True, apply the axis-appropriate ``UsdPhysics.DriveAPI`` instance
             (``"angular"`` for revolute joints, ``"linear"`` for prismatic joints) on matched
             joints that do not carry it, before dispatching the fragments. Distinct from
@@ -1589,11 +1083,11 @@ def apply_joint_drive_properties(
 def _ensure_drive_exists(drive_cfg: schemas_cfg.UsdPhysicsDriveCfg, prim: Usd.Prim, drive_api_name: str) -> None:
     """Seed a minimal stiffness on a fully-passive drive so backends treat it as active.
 
-    Reproduces the legacy ``ensure_drives_exist`` behaviour: if the drive fragment authored
-    neither :attr:`stiffness` nor :attr:`damping` and the authored drive currently has zero
-    (or unset) stiffness *and* damping, write a minimal stiffness of ``1e-3`` directly to the
-    drive API (converted to degree units for angular drives, matching :func:`apply_drive`). The
-    fragment is not mutated, so this is safe across multiple joint prims sharing one fragment.
+    If the drive fragment authored neither :attr:`stiffness` nor :attr:`damping` and the authored
+    drive currently has zero (or unset) stiffness *and* damping, write a minimal stiffness of
+    ``1e-3`` directly to the drive API (converted to degree units for angular drives, matching
+    :func:`apply_drive`). The fragment is not mutated, so this is safe across multiple joint prims
+    sharing one fragment.
 
     Args:
         drive_cfg: The :class:`~isaaclab.sim.schemas.UsdPhysicsDriveCfg` fragment.
@@ -1604,84 +1098,8 @@ def _ensure_drive_exists(drive_cfg: schemas_cfg.UsdPhysicsDriveCfg, prim: Usd.Pr
         return
     usd_drive_api = UsdPhysics.DriveAPI(prim, drive_api_name) or UsdPhysics.DriveAPI.Apply(prim, drive_api_name)
     if not usd_drive_api.GetStiffnessAttr().Get() and not usd_drive_api.GetDampingAttr().Get():
-        # like the legacy writer, 1e-3 is given in per-radian units, so an angular drive gets 1e-3 * pi / 180
+        # 1e-3 is given in per-radian units, so an angular drive gets 1e-3 * pi / 180
         _write_drive_attributes(usd_drive_api, drive_api_name, None, None, 1e-3, None)
-
-
-@deprecated(
-    "modify_joint_drive_properties is deprecated. Use apply_joint_drive_properties with schema fragments"
-    " instead; modify_joint_drive_properties will be removed in 3.2."
-)
-@apply_nested
-def modify_joint_drive_properties(
-    prim_path: str, cfg: schemas_cfg.JointDriveBaseCfg, stage: Usd.Stage | None = None
-) -> bool:
-    """Modify parameters for a joint prim.
-
-    This function checks if the input prim is a prismatic or revolute joint and applies the joint drive schema
-    on it. If the joint is a tendon (i.e., it has the `PhysxTendonAxisAPI`_ schema applied on it), then the joint
-    drive schema is not applied.
-
-    Solver-common properties (from `UsdPhysics.DriveAPI`_) are always written. Solver-specific properties
-    are written based on the cfg subclass metadata (``_usd_namespace``, ``_usd_applied_schema``).
-
-    .. caution::
-
-        We highly recommend modifying joint properties of articulations through the functionalities in the
-        :mod:`isaaclab.actuators` module. The methods here are for setting simulation low-level
-        properties only.
-
-    .. _UsdPhysics.DriveAPI: https://openusd.org/dev/api/class_usd_physics_drive_a_p_i.html
-    .. _PhysxTendonAxisAPI: https://docs.omniverse.nvidia.com/kit/docs/omni_usd_schema_physics/104.2/class_physx_schema_physx_tendon_axis_a_p_i.html
-
-    Args:
-        prim_path: The prim path where to apply the joint drive schema.
-        cfg: The configuration for the joint drive. Accepts
-            :class:`~schemas_cfg.JointDriveBaseCfg` for solver-common properties,
-            :class:`~schemas_cfg.PhysxJointDrivePropertiesCfg` for PhysX properties, or
-            :class:`~schemas_cfg.MujocoJointDrivePropertiesCfg` for Newton (MuJoCo) properties.
-        stage: The stage where to find the prim. Defaults to None, in which case the
-            current stage is used.
-
-    Returns:
-        True if the properties were successfully set, False otherwise.
-
-    Raises:
-        ValueError: If the input prim path is not valid.
-
-    .. deprecated:: 3.1
-        Use :func:`apply_joint_drive_properties` with schema fragments instead. This function will be removed
-        in 3.2.
-    """
-    if stage is None:
-        stage = get_current_stage()
-    prim = stage.GetPrimAtPath(prim_path)
-    if not prim.IsValid():
-        raise ValueError(f"Prim path '{prim_path}' is not valid.")
-    drive_api_name = drive_instance_name(prim)
-    if drive_api_name is None:
-        return False
-    # tendon child prims are controlled by the tendon, not a drive
-    applied_schemas_str = str(prim.GetAppliedSchemas())
-    if "PhysxTendonAxisAPI" in applied_schemas_str and "PhysxTendonAxisRootAPI" not in applied_schemas_str:
-        return False
-    usd_drive_api = UsdPhysics.DriveAPI(prim, drive_api_name) or UsdPhysics.DriveAPI.Apply(prim, drive_api_name)
-
-    cfg_dict = {f.name: getattr(cfg, f.name) for f in dataclasses.fields(cfg)}
-    # seed a minimal stiffness on a passive drive so backends like Newton treat it as active
-    ensure_drives = cfg_dict.pop("ensure_drives_exist", False)
-    if ensure_drives and cfg_dict["stiffness"] is None and cfg_dict["damping"] is None:
-        if not usd_drive_api.GetStiffnessAttr().Get() and not usd_drive_api.GetDampingAttr().Get():
-            cfg_dict["stiffness"] = 1e-3
-    # PhysX stores angular velocities in deg/s
-    if drive_api_name == "angular" and cfg_dict.get("max_joint_velocity") is not None:
-        cfg_dict["max_joint_velocity"] = cfg_dict["max_joint_velocity"] * 180.0 / math.pi
-
-    # solver-common ``UsdPhysics.DriveAPI`` fields; the remainder is PhysX-namespaced
-    drive_values = [cfg_dict.pop(name, None) for name in ("drive_type", "max_force", "stiffness", "damping")]
-    _write_drive_attributes(usd_drive_api, drive_api_name, *drive_values)
-    apply_namespaced_schemas(prim, cfg, cfg_dict)
-    return True
 
 
 """
@@ -1691,24 +1109,6 @@ Fixed tendon properties.
 
 _FIXED_TENDON_SCHEMAS = ("PhysxTendonAxisRootAPI", "PhysxTendonAxisAPI")
 _SPATIAL_TENDON_SCHEMAS = ("PhysxTendonAttachmentRootAPI",)
-
-
-def _write_tendon_properties(prim: Usd.Prim, values: dict[str, object], schema_type: str) -> bool:
-    """Write ``physxTendon:<instance>:*`` values to every applied instance of a multi-apply tendon schema.
-
-    Returns:
-        True if at least one instance of ``schema_type`` was found on the prim.
-    """
-    authored = False
-    for schema in prim.GetAppliedSchemas():
-        applied_type, instance = Usd.SchemaRegistry.GetTypeNameAndInstance(str(schema))
-        if applied_type != schema_type or not instance:
-            continue
-        authored = True
-        for name, value in values.items():
-            attribute = f"physxTendon:{instance}:{to_camel_case(name, 'cC')}"
-            safe_set_attribute_on_usd_prim(prim, attribute, value, camel_case=False)
-    return authored
 
 
 def _apply_tendon_fragments(
@@ -1787,57 +1187,6 @@ def apply_fixed_tendon_properties(
     return _apply_tendon_fragments(prim_path_expr, fragments, _FIXED_TENDON_SCHEMAS, ("MjcTendon",), "fixed", stage)
 
 
-@deprecated(
-    "modify_fixed_tendon_properties is deprecated. Use apply_fixed_tendon_properties with schema fragments"
-    " instead; modify_fixed_tendon_properties will be removed in 3.2."
-)
-@apply_nested
-def modify_fixed_tendon_properties(
-    prim_path: str, cfg: schemas_cfg.PhysxFixedTendonPropertiesCfg, stage: Usd.Stage | None = None
-) -> bool:
-    """Modify PhysX parameters for a fixed tendon attachment prim.
-
-    A `fixed tendon`_ can be used to link multiple degrees of freedom of articulation joints
-    through length and limit constraints. For instance, it can be used to set up an equality constraint
-    between a driven and passive revolute joints.
-
-    The schema comprises of attributes that belong to the `PhysxTendonAxisRootAPI`_ schema.
-
-    .. note::
-        This function is decorated with :func:`apply_nested` that sets the properties to all the prims
-        (that have the schema applied on them) under the input prim path.
-
-    .. _fixed tendon: https://nvidia-omniverse.github.io/PhysX/physx/5.4.1/_api_build/classPxArticulationFixedTendon.html
-    .. _PhysxTendonAxisRootAPI: https://docs.omniverse.nvidia.com/kit/docs/omni_usd_schema_physics/104.2/class_physx_schema_physx_tendon_axis_root_a_p_i.html
-
-    Args:
-        prim_path: The prim path to the tendon attachment.
-        cfg: The configuration for the tendon attachment.
-        stage: The stage where to find the prim. Defaults to None, in which case the
-            current stage is used.
-
-    Returns:
-        True if the properties were successfully set, False otherwise.
-
-    Raises:
-        ValueError: If the input prim path is not valid.
-
-    .. deprecated:: 3.1
-        Use :func:`apply_fixed_tendon_properties` with schema fragments instead. This function will be removed
-        in 3.2.
-    """
-    if stage is None:
-        stage = get_current_stage()
-    tendon_prim = stage.GetPrimAtPath(prim_path)
-    values = to_dict(cfg)
-    if tendon_prim.GetTypeName() != "MjcTendon":
-        return _write_tendon_properties(tendon_prim, values, "PhysxTendonAxisRootAPI")
-    # MuJoCo tendons only share the stiffness/damping fields
-    for name in ("stiffness", "damping"):
-        safe_set_attribute_on_usd_prim(tendon_prim, f"mjc:{name}", values.get(name), camel_case=False)
-    return True
-
-
 """
 Spatial tendon properties.
 """
@@ -1877,143 +1226,9 @@ def apply_spatial_tendon_properties(
     return _apply_tendon_fragments(prim_path_expr, fragments, _SPATIAL_TENDON_SCHEMAS, (), "spatial", stage)
 
 
-@deprecated(
-    "modify_spatial_tendon_properties is deprecated. Use apply_spatial_tendon_properties with schema fragments"
-    " instead; modify_spatial_tendon_properties will be removed in 3.2."
-)
-@apply_nested
-def modify_spatial_tendon_properties(
-    prim_path: str, cfg: schemas_cfg.PhysxSpatialTendonPropertiesCfg, stage: Usd.Stage | None = None
-) -> bool:
-    """Modify PhysX parameters for a spatial tendon attachment prim.
-
-    A `spatial tendon`_ can be used to link multiple degrees of freedom of articulation joints
-    through length and limit constraints. For instance, it can be used to set up an equality constraint
-    between a driven and passive revolute joints.
-
-    The schema comprises attributes that belong to the `PhysxTendonAttachmentRootAPI`_ schema.
-
-    .. note::
-        This function is decorated with :func:`apply_nested` that sets the properties to all the prims
-        (that have the schema applied on them) under the input prim path.
-
-    .. _spatial tendon: https://nvidia-omniverse.github.io/PhysX/physx/5.4.1/_api_build/classPxArticulationSpatialTendon.html
-    .. _PhysxTendonAttachmentRootAPI: https://docs.omniverse.nvidia.com/kit/docs/omni_usd_schema_physics/104.2/class_physx_schema_physx_tendon_attachment_root_a_p_i.html
-
-    Args:
-        prim_path: The prim path to the tendon attachment.
-        cfg: The configuration for the tendon attachment.
-        stage: The stage where to find the prim. Defaults to None, in which case the
-            current stage is used.
-
-    Returns:
-        True if the properties were successfully set, False otherwise.
-
-    Raises:
-        ValueError: If the input prim path is not valid.
-
-    .. deprecated:: 3.1
-        Use :func:`apply_spatial_tendon_properties` with schema fragments instead. This function will be removed
-        in 3.2.
-    """
-    if stage is None:
-        stage = get_current_stage()
-    tendon_prim = stage.GetPrimAtPath(prim_path)
-    return _write_tendon_properties(tendon_prim, to_dict(cfg), "PhysxTendonAttachmentRootAPI")
-
-
 """
 Collision mesh properties.
 """
-
-
-@deprecated(
-    "define_mesh_collision_properties is deprecated. Use apply_mesh_collision_properties with schema fragments"
-    " instead; define_mesh_collision_properties will be removed in 3.2."
-)
-def define_mesh_collision_properties(
-    prim_path: str, cfg: schemas_cfg.MeshCollisionBaseCfg, stage: Usd.Stage | None = None
-):
-    """Apply the mesh collision schema on the input prim and set its properties.
-
-    See :func:`modify_mesh_collision_properties` for more details on how the properties are set.
-
-    Args:
-        prim_path: The prim path where to apply the mesh collision schema.
-        cfg: The configuration for the mesh collision properties.
-        stage: The stage where to find the prim. Defaults to None, in which case the
-            current stage is used.
-
-    Raises:
-        ValueError: When the prim path is not valid.
-
-    .. deprecated:: 3.1
-        Use :func:`apply_mesh_collision_properties` with schema fragments instead. This function will be removed
-        in 3.2.
-    """
-    if stage is None:
-        stage = get_current_stage()
-    prim = stage.GetPrimAtPath(prim_path)
-    if not prim.IsValid():
-        raise ValueError(f"Prim path '{prim_path}' is not valid.")
-    # the standard MeshCollisionAPI is always applied; the PhysX cooking schema (if any) is applied
-    # by the writer only when a PhysX-namespaced tuning field is set
-    if not UsdPhysics.MeshCollisionAPI(prim):
-        UsdPhysics.MeshCollisionAPI.Apply(prim)
-    modify_mesh_collision_properties.__wrapped__(prim_path, cfg, stage)
-
-
-@deprecated(
-    "modify_mesh_collision_properties is deprecated. Use apply_mesh_collision_properties with schema fragments"
-    " instead; modify_mesh_collision_properties will be removed in 3.2."
-)
-@apply_nested
-def modify_mesh_collision_properties(
-    prim_path: str, cfg: schemas_cfg.MeshCollisionBaseCfg, stage: Usd.Stage | None = None
-) -> bool:
-    """Set properties for the mesh collision of a prim.
-
-    Metadata-driven writer. The standard ``UsdPhysics.MeshCollisionAPI`` is applied
-    unconditionally (it is the carrier of the ``physics:approximation`` token). The
-    PhysX cooking schema declared by ``_usd_applied_schema`` (e.g.
-    ``PhysxConvexHullCollisionAPI``) is gated on the user authoring at least one
-    non-``None`` namespaced tuning field, mirroring the gating used by the other
-    consumption-gated writers (rigid body, joint drive, collision, articulation root).
-
-    .. note::
-        This function is decorated with :func:`apply_nested` that sets the properties to
-        all the prims (that have the schema applied on them) under the input prim path.
-
-    .. _UsdPhysics.MeshCollisionAPI: https://openusd.org/release/api/class_usd_physics_mesh_collision_a_p_i.html
-
-    Args:
-        prim_path: The prim path of the rigid body. This prim should be a Mesh prim.
-        cfg: The configuration for the mesh collision properties.
-        stage: The stage where to find the prim. Defaults to None, in which case the
-            current stage is used.
-
-    Returns:
-        True if the properties were successfully set, False otherwise.
-
-    Raises:
-        ValueError: When the mesh approximation name is invalid.
-
-    .. deprecated:: 3.1
-        Use :func:`apply_mesh_collision_properties` with schema fragments instead. This function will be removed
-        in 3.2.
-    """
-    if stage is None:
-        stage = get_current_stage()
-    prim = stage.GetPrimAtPath(prim_path)
-    if not UsdPhysics.MeshCollisionAPI(prim):
-        UsdPhysics.MeshCollisionAPI.Apply(prim)
-    cfg_dict = {f.name: getattr(cfg, f.name) for f in dataclasses.fields(cfg)}
-    _write_mesh_approximation(prim, cfg_dict.pop("mesh_approximation_name", "none"))
-    # PhysX cooking subclasses author their tuning fields under e.g. ``physxConvexHullCollision:*``;
-    # the helper applies the cooking schema only when a tuning field is set, so Newton-targeted
-    # prims stay free of PhysX schemas they did not opt in to
-    apply_namespaced_schemas(prim, cfg, cfg_dict)
-    return True
 
 
 """
@@ -2299,181 +1514,3 @@ def _setup_omniphysics_deformable_body(
     )
     if not prim.ApplyAPI("OmniPhysicsDeformableBodyAPI"):
         raise RuntimeError(f"Failed to set deformable body API on prim '{prim.GetPath().pathString}'.")
-
-
-@deprecated(
-    "define_deformable_body_properties is deprecated. Use apply_volume_deformable_properties or"
-    " apply_surface_deformable_properties with schema fragments and create_if_missing=True instead;"
-    " define_deformable_body_properties will be removed in 3.2."
-)
-def define_deformable_body_properties(
-    prim_path: str,
-    cfg: schemas_cfg.DeformableBodyPropertiesBaseCfg,
-    stage: Usd.Stage | None = None,
-    deformable_type: str = "volume",
-    sim_mesh_prim_path: str | None = None,
-    tetrahedralization_edge_length_fac: float = 0.1,
-):
-    """Apply the deformable body schema on the input prim and set its properties. The input prim should
-    have a visual surface mesh as child. Volume deformables will have their simulation tetrahedral mesh
-    automatically computed from the surface mesh of the input prim. Surface deformables simply copy the visual mesh
-    as simulation mesh.
-
-    See :func:`modify_deformable_body_properties` for more details on how the properties are set.
-
-    .. note::
-        If the input prim is not a mesh, this function will traverse the prim and find the first mesh
-        under it. If no mesh or multiple meshes are found, an error is raised. This is because the deformable
-        body schema can only be applied to a single mesh.
-
-    .. note::
-        This function authors a new deformable body setup from scratch. It does not remove or clear existing
-        deformable body schemas, simulation meshes, or pose data. Use :func:`modify_deformable_body_properties`
-        to update properties on an existing deformable body, or clear any previous setup before calling this
-        function.
-
-    Args:
-        prim_path: The prim path where to apply the deformable body schema.
-        cfg: The configuration for the deformable body.
-        stage: The stage where to find the prim. Defaults to None, in which case the
-            current stage is used.
-        deformable_type: The type of the deformable body (surface or volume).
-            This is used to determine which USD API to use for the deformable body. Defaults to "volume".
-        sim_mesh_prim_path: Optional override for the simulation mesh creation prim path.
-            Ignored when pre-tetrahedralized mesh is found for volume deformables.
-            If None, it is set to ``{prim_path}/sim_mesh``.
-        tetrahedralization_edge_length_fac: Relative target edge length for automatic
-            tetrahedralization. Defaults to ``0.1``.
-
-    Raises:
-        ValueError: When the prim path is not valid.
-        ValueError: When the prim has no mesh or multiple meshes.
-        RuntimeError: When setting the deformable body properties fails.
-
-    .. deprecated:: 3.1
-        Use :func:`apply_volume_deformable_properties` (for ``deformable_type="volume"``) or
-        :func:`apply_surface_deformable_properties` (for ``deformable_type="surface"``) with schema
-        fragments and ``create_if_missing=True`` instead. The active physics backend, rather than
-        the cfg type, then selects the deformable schemas. This function will be removed in 3.2.
-    """
-    # get stage handle
-    if stage is None:
-        stage = get_current_stage()
-
-    # get USD prim
-    root_prim = stage.GetPrimAtPath(prim_path)
-    # check if prim path is valid
-    if not root_prim.IsValid():
-        raise ValueError(f"Prim path '{prim_path}' is not valid.")
-
-    # define authors a fresh deformable setup; callers must clear any previous setup before calling this function.
-    # We check the USD namespace to determine which API to use for the deformable body.
-    use_omni_physics_apis = getattr(cfg, "_usd_namespace", None) != "newton"
-
-    # create the backend-neutral simulation and visual meshes
-    sim_mesh_prim_path = prim_path + "/sim_mesh" if sim_mesh_prim_path is None else sim_mesh_prim_path
-    sim_mesh_prim, vis_mesh_prim = _setup_deformable_meshes(
-        root_prim, deformable_type, sim_mesh_prim_path, stage, tetrahedralization_edge_length_fac
-    )
-
-    if use_omni_physics_apis:
-        # PhysX-based backends: simulation API, rest state, bind pose, and body API
-        _setup_omniphysics_deformable_body(root_prim, deformable_type, sim_mesh_prim, vis_mesh_prim)
-    else:
-        # apply the backend-neutral simulation API on the simulation mesh
-        sim_api = "PhysicsSurfaceDeformableSimAPI" if deformable_type == "surface" else "PhysicsVolumeDeformableSimAPI"
-        if not sim_mesh_prim.AddAppliedSchema(sim_api):
-            raise RuntimeError(f"Failed to set {deformable_type} deformable body API on prim '{sim_mesh_prim_path}'.")
-        # TODO: Temporary solution for Newton: Overwrite visual mesh with tet mesh surface points or copy
-        # surface sim mesh to vis mesh. In the future we can have separate visual from simulation mesh.
-        # This currently does not work if an asset is loaded where the visual mesh is not the simulation mesh surface.
-        vis_mesh = UsdGeom.Mesh(vis_mesh_prim)
-        if deformable_type == "volume":
-            tet_mesh_prim = UsdGeom.TetMesh(sim_mesh_prim)
-            surface_indices = tet_mesh_prim.GetSurfaceFaceVertexIndicesAttr().Get()
-            if surface_indices is None or len(surface_indices) == 0:
-                raise ValueError(
-                    f"Deformable body at '{prim_path}' has no surface indices on its TetMesh prim; "
-                    "cannot sync to visual mesh."
-                )
-            vis_mesh.GetPointsAttr().Set(tet_mesh_prim.GetPointsAttr().Get())
-            vis_mesh.GetFaceVertexIndicesAttr().Set(np.asarray(surface_indices).flatten())
-            vis_mesh.GetFaceVertexCountsAttr().Set([3] * len(surface_indices))
-        else:
-            sim_mesh = UsdGeom.Mesh(sim_mesh_prim)
-            vis_mesh.GetFaceVertexIndicesAttr().Set(sim_mesh.GetFaceVertexIndicesAttr().Get())
-            vis_mesh.GetFaceVertexCountsAttr().Set(sim_mesh.GetFaceVertexCountsAttr().Get())
-        if not root_prim.AddAppliedSchema("PhysicsDeformableBodyAPI"):
-            raise RuntimeError(f"Failed to set deformable body API on prim '{prim_path}'.")
-
-    # ``__wrapped__`` skips only the deprecation warning and keeps the nested traversal
-    modify_deformable_body_properties.__wrapped__(prim_path, cfg, stage)
-
-
-@deprecated(
-    "modify_deformable_body_properties is deprecated. Use apply_volume_deformable_properties or"
-    " apply_surface_deformable_properties with schema fragments instead; modify_deformable_body_properties"
-    " will be removed in 3.2."
-)
-@apply_nested
-def modify_deformable_body_properties(
-    prim_path: str, cfg: schemas_cfg.DeformableBodyPropertiesBaseCfg, stage: Usd.Stage | None = None
-):
-    """Modify deformable body parameters for a deformable body prim.
-
-    A `deformable body`_ is a single body (either surface or volume deformable) that can be simulated by PhysX
-    or Newton. Unlike rigid bodies, deformable bodies support relative motion of the nodes in the mesh.
-    Consequently, they can be used to simulate deformations under applied forces.
-
-    PhysX deformable body simulation employs Finite Element Analysis (FEA) to simulate the deformations of the mesh.
-    It uses two meshes to represent the deformable body:
-
-    1. **Simulation mesh**: This mesh is used for the simulation and is the one that is deformed by the solver.
-    2. **Collision mesh**: This mesh only needs to match the surface of the simulation mesh and is used for
-       collision detection.
-
-    For most applications, we assume that the above two meshes are computed from the "render mesh" of the deformable
-    body. The render mesh is the mesh that is visible in the scene and is used for rendering purposes. It is composed
-    of triangles, while the simulation mesh is composed of tetrahedrons for volume deformables,
-    and triangles for surface deformables.
-
-    We apply similar design choices to the simulation in Newton with a separate visual, simulation and collision mesh.
-
-    .. caution::
-        The deformable body schema is still under development by the Omniverse team. The current implementation
-        works with the PhysX schemas shipped with Isaac Sim 6.0.0 onwards. It may change in future releases.
-
-    .. note::
-        This function is decorated with :func:`apply_nested` that sets the properties to all the prims
-        (that have the schema applied on them) under the input prim path.
-
-    .. _deformable body: https://nvidia-omniverse.github.io/PhysX/physx/5.6.1/docs/DeformableVolume.html
-    .. _PhysxDeformableBodyAPI: https://docs.omniverse.nvidia.com/kit/docs/omni_usd_schema_physics/latest/physxschema/annotated.html
-
-    Args:
-        prim_path: The prim path to the deformable body.
-        cfg: The configuration for the deformable body.
-        stage: The stage where to find the prim. Defaults to None, in which case the
-            current stage is used.
-
-    Returns:
-        True if the properties were successfully set, False otherwise.
-
-    .. deprecated:: 3.1
-        Use :func:`apply_volume_deformable_properties` or :func:`apply_surface_deformable_properties`
-        with schema fragments instead. They match a prim-path expression and, like this function,
-        tune deformable bodies already on the stage. This function will be removed in 3.2.
-    """
-    if stage is None:
-        stage = get_current_stage()
-    deformable_body_prim = stage.GetPrimAtPath(prim_path)
-    if not deformable_body_prim.IsValid() or not has_deformable_body_api(deformable_body_prim):
-        return False
-    cfg_dict = {f.name: getattr(cfg, f.name) for f in dataclasses.fields(cfg)}
-    if cfg_dict.get("kinematic_enabled"):
-        logger.warning(
-            "Kinematic deformable bodies are not fully supported in the current version of Omni Physics. "
-            "Setting kinematic_enabled to True may lead to unexpected behavior."
-        )
-    apply_namespaced_schemas(deformable_body_prim, cfg, cfg_dict)
-    return True

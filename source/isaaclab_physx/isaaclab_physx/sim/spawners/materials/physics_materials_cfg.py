@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-import warnings
 from collections.abc import Callable
 from typing import ClassVar, Literal
 
@@ -130,46 +129,6 @@ class PhysxSurfaceDeformableBodyMaterialCfg(
 
     bend_damping: float = 0.0
     """Damping acting against bend-resistance forces [1/s]. Defaults to 0.0."""
-
-
-@configclass
-class DeformableBodyMaterialCfg(PhysxDeformableBodyMaterialCfg):
-    """Deprecated: use :class:`PhysxDeformableBodyMaterialCfg`.
-
-    .. deprecated:: 3.1
-        ``DeformableBodyMaterialCfg`` has moved to
-        :class:`PhysxDeformableBodyMaterialCfg` for PhysX-specific deformable materials
-        and is scheduled for removal in 3.2.
-    """
-
-    def __post_init__(self):
-        warnings.warn(
-            "'DeformableBodyMaterialCfg' is deprecated and will be removed in 3.2. Use"
-            " 'isaaclab_physx.sim.spawners.materials.PhysxDeformableBodyMaterialCfg' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__post_init__()
-
-
-@configclass
-class SurfaceDeformableBodyMaterialCfg(PhysxSurfaceDeformableBodyMaterialCfg):
-    """Deprecated: use :class:`PhysxSurfaceDeformableBodyMaterialCfg`.
-
-    .. deprecated:: 3.1
-        ``SurfaceDeformableBodyMaterialCfg`` has moved to
-        :class:`PhysxSurfaceDeformableBodyMaterialCfg` for PhysX-specific surface
-        deformable materials and is scheduled for removal in 3.2.
-    """
-
-    def __post_init__(self):
-        warnings.warn(
-            "'SurfaceDeformableBodyMaterialCfg' is deprecated and will be removed in 3.2. Use"
-            " 'isaaclab_physx.sim.spawners.materials.PhysxSurfaceDeformableBodyMaterialCfg' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__post_init__()
 
 
 @configclass
@@ -302,28 +261,3 @@ class PhysxMaterialCfg(RigidBodyMaterialFragment):
         the higher priority will be used. The priority order is provided `here
         <https://nvidia-omniverse.github.io/PhysX/physx/5.4.1/_api_build/structPxCombineMode.html>`__.
     """
-
-
-@configclass
-class RigidBodyMaterialCfg(PhysxRigidBodyMaterialCfg):
-    """Deprecated: use :class:`PhysxRigidBodyMaterialCfg` or
-    :class:`~isaaclab.sim.spawners.materials.RigidBodyMaterialBaseCfg`.
-
-    .. deprecated:: 3.1
-        ``RigidBodyMaterialCfg`` has been split into
-        :class:`~isaaclab.sim.spawners.materials.RigidBodyMaterialBaseCfg` (solver-common) and
-        :class:`PhysxRigidBodyMaterialCfg` (PhysX-specific) and relocated to
-        :mod:`isaaclab_physx.sim.spawners.materials`. This alias preserves backwards compatibility
-        and is scheduled for removal in 3.2.
-    """
-
-    def __post_init__(self):
-        warnings.warn(
-            "'RigidBodyMaterialCfg' is deprecated and will be removed in 3.2. Use"
-            " 'isaaclab_physx.sim.spawners.materials.PhysxRigidBodyMaterialCfg' for PhysX"
-            " properties, or 'isaaclab.sim.spawners.materials.RigidBodyMaterialBaseCfg' for"
-            " solver-common properties only.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__post_init__()

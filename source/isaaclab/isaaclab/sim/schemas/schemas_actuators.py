@@ -13,8 +13,8 @@ read the same authored prims, ensuring both backends construct
 :class:`~newton.actuators.Actuator` instances with matching parameters.
 
 This module lives on the schema side so that authoring is a regular
-``define_*_properties`` step in the spawner pipeline, alongside
-:func:`define_articulation_root_properties` and friends, rather than a
+schema-writing step in the spawner pipeline, alongside
+:func:`apply_articulation_root_properties` and friends, rather than a
 side effect of asset construction.
 """
 

@@ -12,8 +12,7 @@ import omni.kit.commands
 from pxr import Gf, Tf, Usd, UsdGeom, UsdPhysics, UsdUtils
 
 from ..schemas import schemas
-from ..schemas.schemas_cfg import SchemaFragment
-from ..spawners.utils import apply_schema_props
+from ..spawners.utils import apply_schema_props, fragment_mapping
 from ..utils import delete_prim, enable_extension, export_prim_to_file
 from .asset_converter_base import AssetConverterBase
 from .mesh_converter_cfg import MeshConverterCfg
@@ -125,30 +124,19 @@ class MeshConverter(AssetConverterBase):
                 # Collider properties such as offset, scale, etc. anchor at this mesh prim.
                 if cfg.collision_props is not None:
                     apply_schema_props(
-                        cfg.collision_props,
-                        str(child_mesh_prim.GetPath()),
-                        schemas.apply_collision_properties,
-                        schemas.define_collision_properties,
-                        stage,
+                        cfg.collision_props, str(child_mesh_prim.GetPath()), schemas.apply_collision_properties, stage
                     )
                 # Add collision mesh
                 if cfg.mesh_collision_props is not None:
-                    # Transition bridge: route a fragment (or list of fragments) through the new
-                    # ``apply_mesh_collision_properties`` family writer; otherwise fall back to the
-                    # legacy single-cfg ``define_mesh_collision_properties`` path.
-                    mesh_collision_frags = (
-                        cfg.mesh_collision_props
-                        if isinstance(cfg.mesh_collision_props, (list, tuple))
-                        else [cfg.mesh_collision_props]
+                    # a bare fragment or a list of fragments; anything else raises a TypeError
+                    mesh_collision_frags = [
+                        fragment
+                        for fragments in fragment_mapping(cfg.mesh_collision_props).values()
+                        for fragment in fragments
+                    ]
+                    schemas.apply_mesh_collision_properties(
+                        prim_path=child_mesh_prim.GetPath(), fragments=mesh_collision_frags, stage=stage
                     )
-                    if all(isinstance(f, SchemaFragment) for f in mesh_collision_frags):
-                        schemas.apply_mesh_collision_properties(
-                            prim_path=child_mesh_prim.GetPath(), fragments=mesh_collision_frags, stage=stage
-                        )
-                    else:
-                        schemas.define_mesh_collision_properties(
-                            prim_path=child_mesh_prim.GetPath(), cfg=cfg.mesh_collision_props, stage=stage
-                        )
         # Delete the old Xform and make the new Xform the default prim
         stage.SetDefaultPrim(xform_prim)
         # Apply default Xform rotation to mesh -> enable to set rotation and scale
@@ -198,17 +186,9 @@ class MeshConverter(AssetConverterBase):
         # instances of this asset do not unintentionally share them.
         xform_prim_path = str(xform_prim.GetPath())
         if cfg.mass_props is not None:
-            apply_schema_props(
-                cfg.mass_props, xform_prim_path, schemas.apply_mass_properties, schemas.define_mass_properties, stage
-            )
+            apply_schema_props(cfg.mass_props, xform_prim_path, schemas.apply_mass_properties, stage)
         if cfg.rigid_props is not None:
-            apply_schema_props(
-                cfg.rigid_props,
-                xform_prim_path,
-                schemas.apply_rigid_body_properties,
-                schemas.define_rigid_body_properties,
-                stage,
-            )
+            apply_schema_props(cfg.rigid_props, xform_prim_path, schemas.apply_rigid_body_properties, stage)
 
         # Save changes to USD stage
         stage.Save()
