@@ -40,22 +40,24 @@ def props_expr(prim_path: str, pattern: str) -> str:
     return f"{prim_path}{pattern}"
 
 
-def fragment_mapping(value, default_pattern: str = "") -> dict | None:
+def fragment_mapping(value, default_pattern: str = "") -> dict:
     """Normalize a fragment spawner-configuration value to a target-pattern mapping.
 
     The mapping form (``{pattern: [fragment, ...]}``) is the general spelling. As a convenience, a
     bare fragment or a sequence of fragments is accepted and read as ``{default_pattern: [...]}``.
-    The caller picks that default so the convenience form keeps the reach the legacy writers had:
-    the file spawners tune a prim together with its subtree, while the shape, mesh, and converter
-    spawners author the one prim they just created. Legacy dataclass configurations are reported
-    as ``None`` so callers route them to the legacy writers.
+    The caller picks that default: the file spawners tune a prim together with its subtree, while
+    the shape, mesh, and converter spawners author the one prim they just created.
 
     Args:
         value: The value of a fragment spawner-configuration field.
         default_pattern: The target pattern to use for the bare fragment (or sequence) form.
 
     Returns:
-        The equivalent target-pattern mapping, or None when the value is a legacy configuration.
+        The equivalent target-pattern mapping.
+
+    Raises:
+        TypeError: If the value is neither a mapping, a schema fragment, nor a sequence of schema
+            fragments.
     """
     from ..schemas.schemas_cfg import SchemaFragment  # noqa: PLC0415
 
@@ -67,7 +69,10 @@ def fragment_mapping(value, default_pattern: str = "") -> dict | None:
         # an empty sequence carries no fragments and no targeting intent, so it maps to an empty
         # mapping rather than a targeted entry with nothing to author
         return {default_pattern: list(value)} if value else {}
-    return None
+    raise TypeError(
+        "Expected a schema fragment, a sequence of schema fragments, or a mapping from target pattern"
+        f" to fragments; got '{type(value).__name__}'."
+    )
 
 
 def bare_fragments(value) -> bool:
@@ -90,27 +95,20 @@ def bare_fragments(value) -> bool:
     return isinstance(value, (list, tuple)) and all(isinstance(item, SchemaFragment) for item in value)
 
 
-def apply_schema_props(
-    value, anchor_path: str, apply_func: Callable, define_func: Callable, stage: Usd.Stage | None
-) -> None:
+def apply_schema_props(value, anchor_path: str, apply_func: Callable, stage: Usd.Stage | None) -> None:
     """Author a schema family from a spawner-configuration value onto a freshly spawned prim.
 
     A fragment mapping applies one ``apply_func`` call per entry, in insertion order, with the
     pattern anchored at ``anchor_path`` (so ``""`` targets the anchor itself) and the API created
-    when missing. A legacy dataclass configuration routes to ``define_func``.
+    when missing.
 
     Args:
         value: The value of the spawner-configuration field.
         anchor_path: The absolute path of the prim the target patterns anchor on.
         apply_func: The fragment family writer, e.g. ``schemas.apply_mass_properties``.
-        define_func: The legacy writer, e.g. ``schemas.define_mass_properties``.
         stage: The stage containing the prim.
     """
-    mapping = fragment_mapping(value)
-    if mapping is None:
-        define_func(anchor_path, value, stage=stage)
-        return
-    for pattern, fragments in mapping.items():
+    for pattern, fragments in fragment_mapping(value).items():
         apply_func(props_expr(anchor_path, pattern), fragments, create_if_missing=True, stage=stage)
 
 
@@ -119,15 +117,14 @@ def apply_mesh_collision_props(value, anchor_path: str, default_pattern: str, st
 
     Mesh-collision settings describe how a collider is cooked, so the family targets the matched
     prims that carry ``UsdPhysics.CollisionAPI``; other matches are ignored. Each collider receives
-    the fragments through :func:`~isaaclab.sim.schemas.apply_mesh_collision_properties`, or a
-    legacy configuration through :func:`~isaaclab.sim.schemas.define_mesh_collision_properties`.
+    the fragments through :func:`~isaaclab.sim.schemas.apply_mesh_collision_properties`.
     Colliders inside instances cannot be authored on and are skipped. A pattern that matches no
     writable collider logs a warning and authors nothing.
 
     Args:
         value: The value of the ``mesh_collision_props`` spawner-configuration field.
         anchor_path: The absolute path of the prim the target patterns anchor on.
-        default_pattern: The target pattern for the bare fragment (or sequence) and legacy forms.
+        default_pattern: The target pattern for the bare fragment (or sequence) form.
         stage: The stage containing the prims.
     """
     from pxr import UsdPhysics  # noqa: PLC0415
@@ -135,9 +132,8 @@ def apply_mesh_collision_props(value, anchor_path: str, default_pattern: str, st
     from .. import schemas  # noqa: PLC0415
     from ..utils import find_matching_prims  # noqa: PLC0415
 
-    mapping = fragment_mapping(value, default_pattern)
-    for pattern, fragments in ({default_pattern: value} if mapping is None else mapping).items():
-        if mapping is not None and not fragments:
+    for pattern, fragments in fragment_mapping(value, default_pattern).items():
+        if not fragments:
             continue
         expr = props_expr(anchor_path, pattern)
         colliders = [
@@ -149,11 +145,7 @@ def apply_mesh_collision_props(value, anchor_path: str, default_pattern: str, st
             logger.warning("No mesh-collision targets (colliders) matched expression '%s'; nothing was authored.", expr)
             continue
         for collider in colliders:
-            collider_path = collider.GetPath().pathString
-            if mapping is None:
-                schemas.define_mesh_collision_properties(collider_path, fragments, stage=stage)
-            else:
-                schemas.apply_mesh_collision_properties(collider_path, fragments, stage=stage)
+            schemas.apply_mesh_collision_properties(collider.GetPath().pathString, fragments, stage=stage)
 
 
 def subtree_carries_api(prim_path: str, api_type, stage) -> bool:
@@ -189,14 +181,13 @@ def resolve_deformable_slot(cfg) -> tuple[str, dict] | None:
         for kind, value in (("volume", cfg.volume_deformable_props), ("surface", cfg.surface_deformable_props))
         if value is not None
     ]
-    if len(active) + (cfg.deformable_props is not None) > 1:
-        raise ValueError(
-            "Set only one deformable slot: volume_deformable_props, surface_deformable_props, or deformable_props."
-        )
+    if len(active) > 1:
+        raise ValueError("Set only one deformable slot: volume_deformable_props or surface_deformable_props.")
     if not active:
         return None
     kind, value = active[0]
-    mapping = fragment_mapping(value)
-    if mapping is None:
-        raise TypeError(f"{kind}_deformable_props requires a fragment, fragment sequence, or target mapping.")
+    try:
+        mapping = fragment_mapping(value)
+    except TypeError as e:
+        raise TypeError(f"{kind}_deformable_props requires a fragment, fragment sequence, or target mapping.") from e
     return kind, mapping or {"": []}

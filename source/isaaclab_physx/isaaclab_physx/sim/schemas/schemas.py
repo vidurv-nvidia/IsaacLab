@@ -3,12 +3,10 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""PhysX schema-fragment appliers and compatibility wrappers.
+"""PhysX schema-fragment appliers.
 
-The deformable schema writers are backend-aware but remain unified in
-:mod:`isaaclab.sim.schemas`. This module additionally hosts PhysX-specific fragment
-implementation used by joint-drive and multi-instance tendon configs, keeping backend behavior
-out of the core package.
+This module hosts the PhysX-specific fragment implementation used by joint-drive and
+multi-instance tendon configs, keeping backend behavior out of the core package.
 """
 
 from __future__ import annotations
@@ -18,28 +16,20 @@ import math
 
 from pxr import Usd, UsdPhysics
 
-from isaaclab.sim.schemas.schemas import (
-    define_deformable_body_properties,
-    modify_deformable_body_properties,
-)
 from isaaclab.sim.utils import safe_set_attribute_on_usd_prim
 from isaaclab.sim.utils.stage import get_current_stage
 from isaaclab.utils.string import to_camel_case
 
-__all__ = [
-    "apply_physx_joint",
-    "define_deformable_body_properties",
-    "modify_deformable_body_properties",
-]
+__all__ = ["apply_physx_joint"]
 
 
 def apply_physx_joint(cfg, prim_path: str, stage: Usd.Stage | None = None) -> bool:
     """Apply a :class:`~isaaclab_physx.sim.schemas.PhysxJointCfg` fragment to a joint prim.
 
     Like :func:`~isaaclab.sim.schemas.apply_namespaced`, this applies ``PhysxJointAPI`` and writes
-    each non-``None`` field under the ``physxJoint:`` namespace. It additionally reproduces the
-    legacy joint-drive unit convention: for angular (revolute) joints, ``max_joint_velocity`` is
-    converted from rad/s to deg/s, since PhysX stores angular joint velocity limits in degrees.
+    each non-``None`` field under the ``physxJoint:`` namespace. It additionally follows the
+    PhysX unit convention: for angular (revolute) joints, ``max_joint_velocity`` is converted
+    from rad/s to deg/s, since PhysX stores angular joint velocity limits in degrees.
 
     Args:
         cfg: The :class:`~isaaclab_physx.sim.schemas.PhysxJointCfg` fragment.

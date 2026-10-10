@@ -158,7 +158,5 @@ class CableCfg(SpawnerCfg):
     physics_material: materials.CableMaterialCfg = MISSING
     """Cable physics material."""
 
-    collision_props: (
-        schemas.CollisionPropertiesCfg | schemas.CollisionFragment | list[schemas.CollisionFragment] | None
-    ) = None
+    collision_props: schemas.CollisionFragment | list[schemas.CollisionFragment] | None = None
     """Collision properties applied to the cable geometry."""

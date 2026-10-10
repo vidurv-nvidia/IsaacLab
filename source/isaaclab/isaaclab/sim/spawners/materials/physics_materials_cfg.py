@@ -16,13 +16,10 @@ from ...schemas.schemas_cfg import SchemaFragment
 
 # Names that moved out of this submodule into ``isaaclab_physx.sim.spawners.materials.physics_materials_cfg``.
 # Resolved lazily so callers using ``from isaaclab.sim.spawners.materials.physics_materials_cfg
-# import RigidBodyMaterialCfg`` continue to work without importing ``isaaclab_physx`` at module
+# import PhysxRigidBodyMaterialCfg`` continue to work without importing ``isaaclab_physx`` at module
 # load time.
 _PHYSX_FORWARDS = frozenset(
     {
-        "DeformableBodyMaterialCfg",
-        "RigidBodyMaterialCfg",
-        "SurfaceDeformableBodyMaterialCfg",
         "PhysxRigidBodyMaterialCfg",
         "PhysxDeformableBodyMaterialCfg",
         "PhysxSurfaceDeformableBodyMaterialCfg",

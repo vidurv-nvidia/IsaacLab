@@ -37,7 +37,7 @@ class MeshCfg(RigidObjectSpawnerCfg, DeformableObjectSpawnerCfg):
     .. note::
         There are mututally exclusive parameters for rigid and deformable properties. If both are set,
         then an error will be raised. If :attr:`collision_props` is set alongside deformable properties,
-        it must be given as collision fragments, since legacy cfgs cannot target the simulation mesh.
+        its fragments are applied to the simulation mesh.
 
     """
 

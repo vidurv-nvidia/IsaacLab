@@ -49,15 +49,12 @@ class FileCfg(RigidObjectSpawnerCfg, DeformableObjectSpawnerCfg):
         dict[str, list[schemas.ArticulationRootFragment]]
         | schemas.ArticulationRootFragment
         | list[schemas.ArticulationRootFragment]
-        | schemas.ArticulationRootBaseCfg
         | None
     ) = None
     """Properties to apply to the articulation root.
 
-    Accepts either a mapping from target pattern to a list of
-    :class:`~isaaclab.sim.schemas.ArticulationRootFragment` fragments
-    (e.g. ``{"/.*": [PhysxArticulationCfg(...), NewtonArticulationCfg(...)]}``) or a single legacy
-    cfg (e.g. :class:`~isaaclab.sim.schemas.ArticulationRootBaseCfg`). On the fragment path each
+    A mapping from target pattern to a list of :class:`~isaaclab.sim.schemas.ArticulationRootFragment`
+    fragments (e.g. ``{"/.*": [PhysxArticulationCfg(...), NewtonArticulationCfg(...)]}``). Each
     fragment writes its own namespace.
 
     Keys are regular-expression suffixes appended to the spawn prim, so a key carries its own leading ``/`` when it
@@ -73,41 +70,34 @@ class FileCfg(RigidObjectSpawnerCfg, DeformableObjectSpawnerCfg):
     :attr:`articulation_props` mapping.
 
     Creation applies to every matched prim lacking the API; when enabling this, narrow the
-    pattern -- typically a bare fragment, which anchors the spawn prim itself. Only consumed when
-    :attr:`articulation_props` is given as fragments.
+    pattern -- typically a bare fragment, which anchors the spawn prim itself.
     """
 
     fix_root_link: bool | None = None
     """Whether to fix the root link of the articulation. Defaults to None.
 
     This is a non-USD, spawner-level behaviour flag consumed by
-    :func:`~isaaclab.sim.schemas.apply_articulation_root_properties` on the fragment/topology path,
-    including when :attr:`articulation_props` is ``None`` or an empty mapping. When the mapping has
-    several entries, the flag is honored on the first entry only, since the root topology must not
-    be re-fixed per entry. It is handled independently of whether any schema properties are
-    supplied:
+    :func:`~isaaclab.sim.schemas.apply_articulation_root_properties`, including when
+    :attr:`articulation_props` is ``None`` or an empty mapping. When the mapping has several
+    entries, the flag is honored on the first entry only, since the root topology must not be
+    re-fixed per entry. It is handled independently of whether any schema properties are supplied:
 
     * If set to None, the root link is not modified.
     * If the articulation already has a fixed root link, this flag enables or disables the fixed joint.
     * If the articulation does not have a fixed root link, this flag creates a fixed joint between the
       world frame and the root link (named "FixedJoint" under the articulation prim).
-
-    When :attr:`articulation_props` is given as a legacy cfg, set
-    :attr:`~isaaclab.sim.schemas.ArticulationRootBaseCfg.fix_root_link` on that cfg instead.
     """
 
     fixed_tendons_props: (
         dict[str, list[schemas.FixedTendonFragment]]
         | schemas.FixedTendonFragment
         | list[schemas.FixedTendonFragment]
-        | schemas.FixedTendonPropertiesCfg
         | None
     ) = None
     """Properties to apply to the fixed tendons (if any).
 
-    Accepts either a mapping from target pattern to a list of
-    :class:`~isaaclab.sim.schemas.FixedTendonFragment` fragments or the legacy
-    :class:`~isaaclab_physx.sim.schemas.PhysxFixedTendonPropertiesCfg`.
+    A mapping from target pattern to a list of :class:`~isaaclab.sim.schemas.FixedTendonFragment`
+    fragments.
 
     Keys are regular-expression suffixes appended to the spawn prim, so a key carries its own leading ``/`` when it
     targets descendants (``""`` the anchor itself, ``"/[^/]+"`` its direct children, ``"/.*"`` everything beneath it).
@@ -120,14 +110,12 @@ class FileCfg(RigidObjectSpawnerCfg, DeformableObjectSpawnerCfg):
         dict[str, list[schemas.SpatialTendonFragment]]
         | schemas.SpatialTendonFragment
         | list[schemas.SpatialTendonFragment]
-        | schemas.SpatialTendonPropertiesCfg
         | None
     ) = None
     """Properties to apply to the spatial tendons (if any).
 
-    Accepts either a mapping from target pattern to a list of
-    :class:`~isaaclab.sim.schemas.SpatialTendonFragment` fragments or the legacy
-    :class:`~isaaclab_physx.sim.schemas.PhysxSpatialTendonPropertiesCfg`.
+    A mapping from target pattern to a list of :class:`~isaaclab.sim.schemas.SpatialTendonFragment`
+    fragments.
 
     Keys are regular-expression suffixes appended to the spawn prim, so a key carries its own leading ``/`` when it
     targets descendants (``""`` the anchor itself, ``"/[^/]+"`` its direct children, ``"/.*"`` everything beneath it).
@@ -140,15 +128,12 @@ class FileCfg(RigidObjectSpawnerCfg, DeformableObjectSpawnerCfg):
         dict[str, list[schemas.JointDriveFragment]]
         | schemas.JointDriveFragment
         | list[schemas.JointDriveFragment]
-        | schemas.JointDriveBaseCfg
         | None
     ) = None
     """Properties to apply to a joint.
 
-    Accepts either a mapping from target pattern to a list of
-    :class:`~isaaclab.sim.schemas.JointDriveFragment` fragments
-    (e.g. ``{"/.*": [UsdPhysicsDriveCfg(...), PhysxJointCfg(...)]}``) or a single legacy cfg
-    (e.g. :class:`~isaaclab.sim.schemas.JointDriveBaseCfg`). On the fragment path,
+    A mapping from target pattern to a list of :class:`~isaaclab.sim.schemas.JointDriveFragment`
+    fragments (e.g. ``{"/.*": [UsdPhysicsDriveCfg(...), PhysxJointCfg(...)]}``).
     ``UsdPhysics.DriveAPI`` is applied (presence-gated) only when a
     :class:`~isaaclab.sim.schemas.UsdPhysicsDriveCfg` fragment is present, and each fragment writes
     its own namespace.
@@ -171,8 +156,7 @@ class FileCfg(RigidObjectSpawnerCfg, DeformableObjectSpawnerCfg):
     that lack it. Defaults to False. The flag applies to every entry of the
     :attr:`joint_drive_props` mapping.
 
-    Only consumed when :attr:`joint_drive_props` is given as fragments. This is independent of
-    :attr:`ensure_drives_exist`, which instead patches zero-gain drives with a minimal stiffness.
+    This is independent of :attr:`ensure_drives_exist`, which instead patches zero-gain drives with a minimal stiffness.
     """
 
     ensure_drives_exist: bool = False
@@ -180,10 +164,8 @@ class FileCfg(RigidObjectSpawnerCfg, DeformableObjectSpawnerCfg):
 
     When True, any joint drive whose authored stiffness *and* damping are both zero is given a
     minimal stiffness (``1e-3``) so that backends (e.g. Newton) create proper actuators for it.
-    This is a spawner-level behavior flag (not a USD attribute and not a fragment field). It is
-    only consumed when :attr:`joint_drive_props` is given as fragments, and applies to every entry
-    of the mapping; legacy :class:`~isaaclab.sim.schemas.JointDriveBaseCfg` cfgs carry their own
-    ``ensure_drives_exist`` field.
+    This is a spawner-level behavior flag (not a USD attribute and not a fragment field). It
+    applies to every entry of the :attr:`joint_drive_props` mapping.
     """
 
     visual_material_path: str | None = "material"
@@ -355,14 +337,14 @@ class UsdFileWithCompliantContactCfg(UsdFileCfg):
     """Stiffness of the compliant contact. Defaults to None.
 
     This parameter is the same as
-    :attr:`~isaaclab.sim.spawners.materials.RigidBodyMaterialCfg.compliant_contact_stiffness`.
+    :attr:`~isaaclab_physx.sim.spawners.materials.PhysxRigidBodyMaterialCfg.compliant_contact_stiffness`.
     """
 
     compliant_contact_damping: float | None = None
     """Damping of the compliant contact. Defaults to None.
 
     This parameter is the same as
-    :attr:`isaaclab.sim.spawners.materials.RigidBodyMaterialCfg.compliant_contact_damping`.
+    :attr:`~isaaclab_physx.sim.spawners.materials.PhysxRigidBodyMaterialCfg.compliant_contact_damping`.
     """
 
     physics_material_prim_path: str | list[str] | None = None
@@ -457,9 +439,7 @@ class MeshFileCfg(RigidObjectSpawnerCfg):
     scale: tuple[float, float, float] | None = None
     """Scale of the mesh root prim. Defaults to None, in which case the scale is not modified."""
 
-    mesh_collision_props: (
-        schemas.MeshCollisionBaseCfg | schemas.MeshCollisionFragment | list[schemas.MeshCollisionFragment] | None
-    ) = None
+    mesh_collision_props: schemas.MeshCollisionFragment | list[schemas.MeshCollisionFragment] | None = None
     """Mesh collision approximation to apply to the mesh prim. Defaults to None.
 
     Only used when :attr:`collision_props` is set. Accepts the same values as
