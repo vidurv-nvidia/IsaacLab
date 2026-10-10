@@ -277,8 +277,8 @@ def test_generated_project_matches_canonical_uv_layout(tmp_path):
     pyproject_text = (project_dir / "pyproject.toml").read_text()
     assert '\n[test_project.entry-points."isaaclab.tasks"]' not in pyproject_text
     assert '\n[project.entry-points."isaaclab.tasks"]\ntest_project = "test_project.tasks"' in pyproject_text
-    assert "RigidBodyPropertiesCfg" not in (task_dir / "env_cfg.py").read_text()
-    assert "ArticulationRootPropertiesCfg" not in (task_dir / "env_cfg.py").read_text()
+    # the template authors physics through schema fragments, never single ``*PropertiesCfg`` cfgs
+    assert "PropertiesCfg" not in (task_dir / "env_cfg.py").read_text()
 
 
 def test_generated_project_uses_active_source_checkout(tmp_path):

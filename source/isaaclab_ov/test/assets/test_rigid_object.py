@@ -34,6 +34,7 @@ pytest.importorskip("ovphysx.types", reason="ovphysx wheel not installed")
 from isaaclab_ov import tensor_types as TT  # noqa: E402
 from isaaclab_ov.assets import RigidObject, RigidObjectCollection  # noqa: E402
 from isaaclab_ov.physics import OvPhysxCfg, OvPhysxManager  # noqa: E402
+from isaaclab_physx.sim.schemas import PhysxRigidBodyCfg  # noqa: E402
 
 import isaaclab.sim as sim_utils  # noqa: E402
 from isaaclab import cloner  # noqa: E402
@@ -50,6 +51,14 @@ _NUM_CUBES = 2
 _NUM_ENVS, _NUM_BODIES = 2, 3
 
 
+def _rigid_fragments(kinematic_enabled: bool | None = None, disable_gravity: bool | None = None) -> list:
+    """Rigid-body fragments for a cube: the ``physics:*`` fields plus ``disable_gravity`` when set."""
+    fragments = [sim_utils.UsdPhysicsRigidBodyCfg(kinematic_enabled=kinematic_enabled)]
+    if disable_gravity is not None:
+        fragments.append(PhysxRigidBodyCfg(disable_gravity=disable_gravity))
+    return fragments
+
+
 def _spawn_cubes(name: str, y_offset: float, **rigid_props) -> RigidObject:
     """Author one pair of local cuboids."""
     for index in range(_NUM_CUBES):
@@ -59,9 +68,9 @@ def _spawn_cubes(name: str, y_offset: float, **rigid_props) -> RigidObject:
             prim_path=f"/World/{name}/Env_[^/]*/Cube",
             spawn=sim_utils.CuboidCfg(
                 size=(0.2, 0.2, 0.2),
-                rigid_props=sim_utils.RigidBodyPropertiesCfg(**rigid_props),
-                mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
-                collision_props=sim_utils.CollisionPropertiesCfg(),
+                rigid_props=_rigid_fragments(**rigid_props),
+                mass_props=sim_utils.MassCfg(mass=1.0),
+                collision_props=sim_utils.UsdPhysicsCollisionCfg(),
             ),
             init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 1.0)),
         )
@@ -86,9 +95,9 @@ def _spawn_collection(name: str, y_offset: float, spawn: sim_utils.SpawnerCfg | 
     if spawn is None:
         spawn = sim_utils.CuboidCfg(
             size=(0.2, 0.2, 0.2),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(disable_gravity=True),
-            mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
-            collision_props=sim_utils.CollisionPropertiesCfg(),
+            rigid_props=_rigid_fragments(disable_gravity=True),
+            mass_props=sim_utils.MassCfg(mass=1.0),
+            collision_props=sim_utils.UsdPhysicsCollisionCfg(),
         )
     for env_index in range(_NUM_ENVS):
         sim_utils.create_prim(f"/World/{name}/Env_{env_index}", "Xform", translation=(3.0 * env_index, y_offset, 0.0))
@@ -114,17 +123,17 @@ class HeterogeneousRigidSceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Support",
         spawn=sim_utils.CuboidCfg(
             size=(1.0, 1.0, 0.2),
-            rigid_props=sim_utils.RigidBodyBaseCfg(kinematic_enabled=True),
-            collision_props=sim_utils.CollisionBaseCfg(),
+            rigid_props=sim_utils.UsdPhysicsRigidBodyCfg(kinematic_enabled=True),
+            collision_props=sim_utils.UsdPhysicsCollisionCfg(),
         ),
     )
     object = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Object",
         spawn=sim_utils.MultiAssetSpawnerCfg(
             assets_cfg=[sim_utils.CuboidCfg(size=(0.2, 0.2, 0.2)), sim_utils.SphereCfg(radius=0.1)],
-            rigid_props=sim_utils.RigidBodyBaseCfg(),
-            collision_props=sim_utils.CollisionBaseCfg(),
-            mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
+            rigid_props=sim_utils.UsdPhysicsRigidBodyCfg(),
+            collision_props=sim_utils.UsdPhysicsCollisionCfg(),
+            mass_props=sim_utils.MassCfg(mass=1.0),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.4)),
     )

@@ -25,7 +25,7 @@ def cleanup_simulation_context():
 
 
 # -------------------------------------------------------------------------------------
-# spawn_rigid_body_material_from_fragments: spawn prim + anchor + multi-namespace compose
+# spawn_physics_material_from_fragments: spawn prim + anchor + multi-namespace compose
 # -------------------------------------------------------------------------------------
 
 
@@ -79,28 +79,6 @@ def test_spawn_physics_material_from_fragments_accepts_single_fragment():
     assert prim.IsA(UsdShade.Material)
     assert bool(UsdPhysics.MaterialAPI(prim))
     assert prim.GetAttribute("physics:staticFriction").Get() == pytest.approx(0.3)
-
-
-def test_spawn_rigid_body_material_from_fragments_alias_warns_and_forwards():
-    """The pre-rename public name stays importable, warns, and authors through the new writer."""
-    import warnings
-
-    from isaaclab.sim.spawners.materials import spawn_rigid_body_material_from_fragments
-    from isaaclab.sim.spawners.materials.physics_materials_cfg import UsdPhysicsRigidBodyMaterialCfg
-
-    sim_utils.create_new_stage()
-    SimulationContext(SimulationCfg(dt=0.01))
-    stage = sim_utils.get_current_stage()
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        prim = spawn_rigid_body_material_from_fragments(
-            "/World/MatAlias", UsdPhysicsRigidBodyMaterialCfg(static_friction=0.5), stage
-        )
-    assert any(issubclass(w.category, DeprecationWarning) for w in caught)
-    assert any("spawn_physics_material_from_fragments" in str(w.message) for w in caught)
-    assert prim.IsA(UsdShade.Material)
-    assert bool(UsdPhysics.MaterialAPI(prim))
-    assert prim.GetAttribute("physics:staticFriction").Get() == pytest.approx(0.5)
 
 
 def test_spawn_physics_material_dispatches_fragments_and_legacy():
@@ -292,15 +270,14 @@ def test_spawn_ground_plane_accepts_fragment_list_physics_material():
 
 
 # -------------------------------------------------------------------------------------
-# Regression: the mesh spawner's rigid-material guard must also accept legacy (non-fragment)
-# rigid-body material cfgs, not just the deprecated ``RigidBodyMaterialCfg`` alias.
+# Regression: the mesh spawner's rigid-material guard must also accept non-fragment rigid-body
+# material cfgs derived from ``RigidBodyMaterialBaseCfg``.
 # -------------------------------------------------------------------------------------
 
 
 def test_spawn_mesh_with_rigid_props_accepts_legacy_physx_rigid_body_material():
-    """Regression test: the mesh guard used to check ``isinstance(cfg.physics_material,
-    RigidBodyMaterialCfg)`` -- the deprecated PhysX leaf alias -- which rejected the canonical
-    legacy :class:`~isaaclab_physx.sim.spawners.materials.PhysxRigidBodyMaterialCfg` even though
+    """Regression test: the mesh guard used to check a PhysX-only material subclass, which rejected
+    :class:`~isaaclab_physx.sim.spawners.materials.PhysxRigidBodyMaterialCfg` even though
     :func:`~isaaclab.sim.spawners.materials.spawn_physics_material` accepts it."""
     from isaaclab_physx.sim.spawners.materials.physics_materials_cfg import PhysxRigidBodyMaterialCfg
 
@@ -327,9 +304,9 @@ def test_spawn_mesh_with_rigid_props_accepts_legacy_physx_rigid_body_material():
 
 
 def test_spawn_mesh_with_rigid_props_accepts_legacy_newton_material():
-    """Same regression as above for Newton's legacy rigid-body material cfg, which also derives
-    from :class:`~isaaclab.sim.spawners.materials.RigidBodyMaterialBaseCfg` (not the deprecated
-    PhysX ``RigidBodyMaterialCfg`` alias) and must not be rejected by the mesh guard."""
+    """Same regression as above for Newton's rigid-body material cfg, which also derives from
+    :class:`~isaaclab.sim.spawners.materials.RigidBodyMaterialBaseCfg` and must not be rejected by
+    the mesh guard."""
     from isaaclab_newton.sim.schemas import NewtonMaterialPropertiesCfg
 
     from isaaclab.sim.spawners.meshes.meshes_cfg import MeshCuboidCfg

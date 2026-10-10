@@ -8,13 +8,10 @@ from isaaclab.test.utils import launch_test_simulation
 launch_test_simulation()
 
 import dataclasses
-import inspect
 
 import pytest
 from isaaclab_newton.sim.schemas import MujocoFixedTendonCfg, apply_mujoco_fixed_tendon
 from isaaclab_physx.sim.schemas import (
-    PhysxFixedTendonPropertiesCfg,
-    PhysxSpatialTendonPropertiesCfg,
     PhysxTendonAttachmentRootCfg,
     PhysxTendonAxisCfg,
     PhysxTendonAxisRootCfg,
@@ -24,12 +21,7 @@ from pxr import PhysxSchema, Sdf, Usd, UsdGeom
 
 import isaaclab.sim as sim_utils
 from isaaclab.sim import SimulationCfg, SimulationContext
-from isaaclab.sim.schemas import (
-    apply_fixed_tendon_properties,
-    apply_spatial_tendon_properties,
-    modify_fixed_tendon_properties,
-    modify_spatial_tendon_properties,
-)
+from isaaclab.sim.schemas import apply_fixed_tendon_properties, apply_spatial_tendon_properties
 from isaaclab.utils.string import to_camel_case
 
 pytestmark = pytest.mark.integration
@@ -185,19 +177,6 @@ def test_spatial_tendon_selects_root_instance_and_skips_leaves():
     assert not prim.GetAttribute("physxTendon:l0:stiffness").IsValid()
 
 
-def test_legacy_spatial_tendon_writer_uses_root_property_namespace():
-    stage = _new_sim()
-    prim = _make_prim_with_schemas(
-        stage,
-        "/World/STlegacy",
-        ["PhysxTendonAttachmentRootAPI:r0", "PhysxTendonAttachmentLeafAPI:l0"],
-    )
-    writer = inspect.unwrap(modify_spatial_tendon_properties)
-    assert writer("/World/STlegacy", PhysxSpatialTendonPropertiesCfg(stiffness=6.0), stage)
-    assert prim.GetAttribute("physxTendon:r0:stiffness").Get() == pytest.approx(6.0)
-    assert not prim.GetAttribute("physxTendon:l0:stiffness").IsValid()
-
-
 def test_tendon_writer_dispatches_multiple_fragments():
     stage = _new_sim()
     prim = _make_prim_with_schemas(stage, "/World/Tendon", ["PhysxTendonAxisRootAPI:t0"])
@@ -216,56 +195,12 @@ def test_apply_mujoco_fixed_tendon_writes_mjc_namespace():
     assert abs(prim.GetAttribute("mjc:damping").Get() - 0.25) < 1e-6
 
 
-def test_legacy_physx_tendon_cfg_does_not_leak_physx_only_fields_to_mujoco():
-    stage = _new_sim()
-    prim = stage.DefinePrim("/World/LegacyMjcTendon", "MjcTendon")
-    cfg = PhysxFixedTendonPropertiesCfg(stiffness=2.0, damping=0.25, lower_limit=-1.0, upper_limit=1.0)
-    assert inspect.unwrap(modify_fixed_tendon_properties)(str(prim.GetPath()), cfg, stage)
-    assert prim.GetAttribute("mjc:stiffness").Get() == pytest.approx(2.0)
-    assert prim.GetAttribute("mjc:damping").Get() == pytest.approx(0.25)
-    assert not prim.HasAttribute("mjc:lowerLimit")
-    assert not prim.HasAttribute("mjc:upperLimit")
-
-
 def test_apply_mujoco_fixed_tendon_returns_false_on_non_mjc_prim():
     stage = _new_sim()
     UsdGeom.Xform.Define(stage, "/World/NotMjc")
     assert apply_mujoco_fixed_tendon(MujocoFixedTendonCfg(stiffness=2.0), "/World/NotMjc", stage) is False
     prim = stage.GetPrimAtPath("/World/NotMjc")
     assert not prim.HasAttribute("mjc:stiffness")
-
-
-def test_legacy_and_fragment_fixed_tendon_produce_identical_attrs():
-    stage = _new_sim()
-
-    for root in ("/World/legacy", "/World/fragment"):
-        UsdGeom.Xform.Define(stage, root)
-        _make_prim_with_schemas(stage, f"{root}/J0", ["PhysxTendonAxisRootAPI:t0", "PhysxTendonAxisRootAPI:t1"])
-        _make_prim_with_schemas(stage, f"{root}/nested/J1", ["PhysxTendonAxisRootAPI:t0"])
-
-    modify_fixed_tendon_properties("/World/legacy", PhysxFixedTendonPropertiesCfg(limit_stiffness=30.0, damping=0.1))
-    apply_fixed_tendon_properties("/World/fragment(/.*)?", [PhysxTendonAxisRootCfg(limit_stiffness=30.0, damping=0.1)])
-
-    def _collect(root):
-        attrs = {}
-        for prim in Usd.PrimRange(stage.GetPrimAtPath(root)):
-            for schema_name in prim.GetAppliedSchemas():
-                schema_type, instance = Usd.SchemaRegistry.GetTypeNameAndInstance(str(schema_name))
-                if schema_type != "PhysxTendonAxisRootAPI":
-                    continue
-                for suffix in ("limitStiffness", "damping"):
-                    attr_name = f"physxTendon:{instance}:{suffix}"
-                    attr = prim.GetAttribute(attr_name)
-                    if attr and attr.HasAuthoredValue():
-                        rel = prim.GetPath().pathString[len(root) :]
-                        attrs[f"{rel}|{instance}:{suffix}"] = attr.Get()
-        return attrs
-
-    legacy = _collect("/World/legacy")
-    fragment = _collect("/World/fragment")
-
-    assert legacy, "legacy writer authored no tendon attributes (test would be vacuous)"
-    assert fragment == pytest.approx(legacy)
 
 
 def test_spawn_from_file_with_empty_tendon_lists_is_noop(tmp_path):

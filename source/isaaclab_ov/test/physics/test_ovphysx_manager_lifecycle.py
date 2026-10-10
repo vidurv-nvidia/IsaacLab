@@ -441,8 +441,8 @@ def _retained_binding_script() -> str:
         )
         cube_cfg = sim_utils.CuboidCfg(
             size=(0.5, 0.5, 0.5),
-            rigid_props=sim_utils.RigidBodyBaseCfg(),
-            collision_props=sim_utils.CollisionBaseCfg(),
+            rigid_props=sim_utils.UsdPhysicsRigidBodyCfg(),
+            collision_props=sim_utils.UsdPhysicsCollisionCfg(),
         )
         cube_cfg.func("/World/Cube", cube_cfg, translation=(0.0, 0.0, 1.0))
         sim.reset()
@@ -481,9 +481,9 @@ def _device_sequence_script(devices: tuple[str, ...]) -> str:
                         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 2.0)),
                         spawn=sim_utils.CuboidCfg(
                             size=(0.5, 0.5, 0.5),
-                            rigid_props=sim_utils.RigidBodyBaseCfg(),
-                            mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
-                            collision_props=sim_utils.CollisionBaseCfg(),
+                            rigid_props=sim_utils.UsdPhysicsRigidBodyCfg(),
+                            mass_props=sim_utils.MassCfg(mass=1.0),
+                            collision_props=sim_utils.UsdPhysicsCollisionCfg(),
                         ),
                     )
                 )

@@ -410,11 +410,9 @@ def test_physx_fix_root_link_preserves_complete_authored_property_spec():
 
 
 def test_apply_articulation_root_properties_rejects_non_fragment_items():
-    """A list containing a non-fragment (e.g. a legacy single cfg) raises a clear ``TypeError`` --
-    not an ``AttributeError`` deep inside fragment dispatch."""
-    from isaaclab_physx.sim.schemas import PhysxArticulationRootPropertiesCfg
-
-    from isaaclab.sim.schemas import apply_articulation_root_properties
+    """A list containing a fragment of another family raises a clear ``TypeError`` -- not an
+    ``AttributeError`` deep inside fragment dispatch."""
+    from isaaclab.sim.schemas import UsdPhysicsRigidBodyCfg, apply_articulation_root_properties
 
     sim_utils.create_new_stage()
     SimulationContext(SimulationCfg(dt=0.01))
@@ -423,7 +421,7 @@ def test_apply_articulation_root_properties_rejects_non_fragment_items():
     with pytest.raises(TypeError, match="ArticulationRootFragment"):
         apply_articulation_root_properties(
             "/World/BadList",
-            [PhysxArticulationRootPropertiesCfg(solver_position_iteration_count=8)],
+            [UsdPhysicsRigidBodyCfg(rigid_body_enabled=True)],
             stage,
         )
 
@@ -527,11 +525,11 @@ def test_base_manager_fix_articulation_root_requires_rigid_body():
         PhysicsManager.fix_articulation_root(root, stage)
 
 
-def test_articulation_fragment_and_legacy_cfg_match_physx_schema():
-    """Both interfaces cover exactly all six attributes registered by PhysxArticulationAPI."""
+def test_articulation_fragment_matches_physx_schema():
+    """The fragment covers exactly all six attributes registered by PhysxArticulationAPI."""
     import dataclasses
 
-    from isaaclab_physx.sim.schemas import PhysxArticulationCfg, PhysxArticulationRootPropertiesCfg
+    from isaaclab_physx.sim.schemas import PhysxArticulationCfg
 
     from pxr import PhysxSchema
 
@@ -542,49 +540,11 @@ def test_articulation_fragment_and_legacy_cfg_match_physx_schema():
 
     schema_attrs = {name.split(":", 1)[1] for name in PhysxSchema.PhysxArticulationAPI.GetSchemaAttributeNames()}
     fragment_attrs = {to_camel_case(name, "cC") for name in fields(PhysxArticulationCfg)}
-    legacy_attrs = {
-        to_camel_case(name, "cC") for name in fields(PhysxArticulationRootPropertiesCfg) - {"fix_root_link"}
-    }
     assert fragment_attrs == schema_attrs
-    assert legacy_attrs == schema_attrs
-
-
-def test_newton_legacy_cfg_matches_equivalent_fragment_composition():
-    """A Newton legacy subclass still routes its inherited articulation_enabled base field."""
-    from isaaclab_newton.sim.schemas import NewtonArticulationCfg, NewtonArticulationRootPropertiesCfg
-    from isaaclab_physx.sim.schemas import PhysxArticulationCfg
-
-    from isaaclab.sim.schemas import apply_articulation_root_properties, modify_articulation_root_properties
-
-    sim_utils.create_new_stage()
-    SimulationContext(SimulationCfg(dt=0.01))
-    stage = sim_utils.get_current_stage()
-    legacy = _make_xform(stage, "/World/LegacyNewton")
-    fragments = _make_xform(stage, "/World/FragmentNewton")
-    UsdPhysics.ArticulationRootAPI.Apply(legacy)
-    UsdPhysics.ArticulationRootAPI.Apply(fragments)
-
-    modify_articulation_root_properties(
-        legacy.GetPath(),
-        NewtonArticulationRootPropertiesCfg(articulation_enabled=False, self_collision_enabled=True),
-        stage,
-    )
-    apply_articulation_root_properties(
-        fragments.GetPath().pathString,
-        [
-            PhysxArticulationCfg(articulation_enabled=False),
-            NewtonArticulationCfg(self_collision_enabled=True),
-        ],
-        stage,
-    )
-
-    for prim in (legacy, fragments):
-        assert prim.GetAttribute("physxArticulation:articulationEnabled").Get() is False
-        assert prim.GetAttribute("newton:selfCollisionEnabled").Get() is True
 
 
 # -------------------------------------------------------------------------------------
-# end-to-end: the from-files spawner routes articulation_props by type
+# end-to-end: the from-files spawner authors articulation_props fragments
 # -------------------------------------------------------------------------------------
 
 

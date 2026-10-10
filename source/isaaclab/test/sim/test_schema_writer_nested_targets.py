@@ -110,43 +110,6 @@ def test_rigid_body_fragments_target_existing_bodies_on_usd_asset(tmp_path):
         assert collider.GetAttribute("physxCollision:contactOffset").Get() == pytest.approx(0.02), link_name
 
 
-def test_fragment_and_legacy_paths_place_apis_identically_on_usd_asset(tmp_path):
-    """On a real asset topology, the fragment path must place APIs exactly where legacy does.
-
-    Spawns two copies of the same robot asset; configures one through the legacy single-cfg
-    path and one through the fragment path with equivalent values; asserts every prim in both
-    subtrees carries the same applied-schema set and the same authored attribute values.
-    """
-    from isaaclab_physx.sim.schemas import PhysxRigidBodyPropertiesCfg
-
-    from isaaclab.sim.spawners.from_files.from_files import spawn_from_usd_file
-    from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
-
-    usd_path = os.path.join(tmp_path, "robot.usda")
-    _author_robot_usd(usd_path)
-    sim_utils.create_new_stage()
-    SimulationContext(SimulationCfg(dt=0.01))
-    legacy_cfg = UsdFileCfg(usd_path=usd_path, rigid_props=PhysxRigidBodyPropertiesCfg(max_depenetration_velocity=5.0))
-    frag_cfg = UsdFileCfg(
-        usd_path=usd_path, rigid_props={"(/.*)?": [PhysxRigidBodyCfg(max_depenetration_velocity=5.0)]}
-    )
-    spawn_from_usd_file("/World/Legacy", usd_path, legacy_cfg)
-    spawn_from_usd_file("/World/Frag", usd_path, frag_cfg)
-    stage = sim_utils.get_current_stage()
-
-    legacy_root = stage.GetPrimAtPath("/World/Legacy")
-    frag_root = stage.GetPrimAtPath("/World/Frag")
-    legacy_prims = {p.GetPath().pathString.removeprefix("/World/Legacy"): p for p in Usd.PrimRange(legacy_root)}
-    frag_prims = {p.GetPath().pathString.removeprefix("/World/Frag"): p for p in Usd.PrimRange(frag_root)}
-    assert legacy_prims.keys() == frag_prims.keys()
-    for rel_path, legacy_prim in legacy_prims.items():
-        frag_prim = frag_prims[rel_path]
-        assert set(legacy_prim.GetAppliedSchemas()) == set(frag_prim.GetAppliedSchemas()), rel_path
-        legacy_attrs = {a.GetName(): a.Get() for a in legacy_prim.GetAttributes() if a.HasAuthoredValue()}
-        frag_attrs = {a.GetName(): a.Get() for a in frag_prim.GetAttributes() if a.HasAuthoredValue()}
-        assert legacy_attrs == frag_attrs, rel_path
-
-
 def test_rigid_body_pattern_cfg_narrows_spawned_targets(tmp_path):
     """A narrowing dict key on the spawner cfg restricts which links receive fragments."""
     stage = _spawn_robot(
