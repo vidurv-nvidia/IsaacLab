@@ -281,10 +281,9 @@ including file path, simulation parameters, actuator properties, and initial sta
 
 Within the :class:`~assets.ArticulationCfg`, the ``spawn`` attribute can be used to add the robot to the scene by
 specifying the path to the robot file. Reuse an existing asset configuration when one is available, as shown above.
-For a custom asset, use backend-portable schema base classes from :mod:`isaaclab.sim.schemas` for common properties
-and backend-specific schema classes from :mod:`isaaclab_physx.sim.schemas` or
-:mod:`isaaclab_newton.sim.schemas` only for solver-specific settings. See :ref:`schema-cfgs` for the current class
-mapping. Joint properties are specified in the ``actuators`` dictionary, for example with
+For a custom asset, compose schema fragments: the engine-neutral ones from :mod:`isaaclab.sim.schemas` for common
+properties and the backend fragments from :mod:`isaaclab_physx.sim.schemas` or :mod:`isaaclab_newton.sim.schemas`
+only for solver-specific settings. See :ref:`schema-fragments-placement` for where each fragment lives. Joint properties are specified in the ``actuators`` dictionary, for example with
 :class:`~actuators.ImplicitActuatorCfg`. Joints with the same properties can be grouped using regular expressions.
 
 Actors are declared as :class:`~assets.ArticulationCfg` fields on the scene config. The

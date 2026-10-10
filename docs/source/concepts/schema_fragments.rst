@@ -9,10 +9,12 @@ single attribute namespace. Because fragments compose in lists, one asset config
 can carry OpenUSD physics (``physics:*``), PhysX (``physx*:*``), and Newton
 (``newton:*`` / ``mjc:*``) attributes side by side and run on any backend.
 
-This page explains the fragment model, the prim-path expressions that target fragments
-at prims, and the spawner-level configuration surface. For the solver-common vs.
-backend-specific class tiers, see :ref:`schema-cfgs`. For the full class and function
-reference, see :doc:`/source/api/lab/isaaclab.sim.schemas`.
+This page explains the fragment model, where each fragment lives, the prim-path expressions
+that target fragments at prims, and the spawner-level configuration surface. For the full class
+and function reference, see :doc:`/source/api/lab/isaaclab.sim.schemas`. Fragments are the only
+schema configuration surface: the single-cfg classes (``*BaseCfg`` / ``*PropertiesCfg``) and
+their ``define_*`` / ``modify_*`` writers were removed in Isaac Lab 3.2. The
+:ref:`3.0 migration guide <schemas-cfg-refactor>` maps each removed class to its fragments.
 
 The fragment model
 ------------------
@@ -98,6 +100,55 @@ joints:
        ],
    }
 
+.. _schema-fragments-placement:
+
+Where fragments live
+--------------------
+
+Fragment names follow ``<SourceSchema><Concept>Cfg``: the prefix names the schema family the
+fragment authors and the rest names the property group, e.g.
+:class:`~isaaclab.sim.schemas.UsdPhysicsRigidBodyCfg` (``UsdPhysics.RigidBodyAPI``) or
+:class:`~isaaclab_physx.sim.schemas.PhysxConvexHullCfg` (``PhysxConvexHullCollisionAPI``). The one
+exception is :class:`~isaaclab.sim.schemas.MassCfg`, the ``UsdPhysics.MassAPI`` fragment, which
+keeps the shorter name.
+
+A fragment lives in the package that owns its schema:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 30 50
+
+   * - Prefix
+     - Namespace
+     - Package
+   * - ``UsdPhysics``
+     - ``physics:*`` (engine-neutral OpenUSD)
+     - :mod:`isaaclab.sim.schemas`, :mod:`isaaclab.sim.spawners.materials` (core)
+   * - ``OmniPhysics``
+     - ``omniphysics:*`` (NVIDIA)
+     - :mod:`isaaclab.sim.schemas`, :mod:`isaaclab.sim.spawners.materials` (core)
+   * - ``Physx``
+     - ``physx*:*`` (PhysX solver tuning)
+     - :mod:`isaaclab_physx.sim.schemas`, :mod:`isaaclab_physx.sim.spawners.materials`
+   * - ``Newton``
+     - ``newton:*`` (Newton solver tuning)
+     - :mod:`isaaclab_newton.sim.schemas`, :mod:`isaaclab_newton.sim.spawners.materials`
+   * - ``Mujoco``
+     - ``mjc:*`` (Newton's MuJoCo solver)
+     - :mod:`isaaclab_newton.sim.schemas`
+
+Engine-neutral schemas therefore sit in core and import no backend, while solver tuning sits in
+the backend package that consumes it. ``isaaclab_ov`` ships no fragments of its own: the OvPhysX
+backend reads the PhysX schemas, so OvPhysX assets use the ``Physx*`` fragments from
+:mod:`isaaclab_physx.sim.schemas` alongside the core ones.
+
+Field names use ``snake_case`` and map to ``camelCase`` USD attributes
+(``contact_margin`` writes ``newton:contactMargin``). Two renamed fields keep a deprecated alias
+that forwards to the canonical field and warns: ``max_effort`` on
+:class:`~isaaclab.sim.schemas.UsdPhysicsDriveCfg` (use ``max_force``) and ``max_velocity`` on
+:class:`~isaaclab_physx.sim.schemas.PhysxJointCfg` (use ``max_joint_velocity``). Both aliases are
+scheduled for removal in 4.0.
+
 Targeting expressions
 ---------------------
 
@@ -128,11 +179,9 @@ Configuring fragments on spawners
 
 Spawner configurations (:class:`~isaaclab.sim.spawners.from_files.UsdFileCfg`,
 :class:`~isaaclab.sim.spawners.shapes.CuboidCfg`, ...) expose one field per family.
-Each field accepts either a mapping from target pattern to a list of fragments, a bare
-fragment or list of fragments (see the shorthand below), a
-single legacy dataclass cfg (e.g.
-:class:`~isaaclab.sim.schemas.RigidBodyBaseCfg` or a backend ``*PropertiesCfg``, routed
-to the legacy writers), or ``None``.
+Each field accepts a mapping from target pattern to a list of fragments, a bare
+fragment or list of fragments (see the shorthand below), or ``None``. Any other value raises a
+``TypeError`` when the asset is spawned.
 
 Mapping keys are regular-expression suffixes appended to *the prim the spawner authors
 that family on*: the spawn prim for USD, URDF, and MJCF assets; for shape and mesh
@@ -217,6 +266,38 @@ dropped entirely:
 Reach for the mapping when a rule must target something other than the anchor prim — the
 usual situation for assets spawned from USD, URDF, or MJCF files, where the spawn prim is a
 container and the schema carriers sit beneath it.
+
+.. _schema-fragments-gravcomp:
+
+Gravity compensation (MuJoCo solver)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Gravity compensation on Newton's MuJoCo solver has two halves:
+
+* **Body-level**: :attr:`~isaaclab_newton.sim.schemas.MujocoRigidBodyCfg.gravcomp` in
+  ``rigid_props`` (writes ``mjc:gravcomp``). This *computes* the compensation force.
+* **Joint-level**: :attr:`~isaaclab_newton.sim.schemas.MujocoJointCfg.actuatorgravcomp` in
+  ``joint_drive_props`` (writes ``mjc:actuatorgravcomp`` through ``MjcJointAPI``). This routes the
+  compensation force through the actuator channel (``qfrc_actuator``) so it counts against
+  ``actuatorfrcrange``; otherwise it goes to ``qfrc_passive``.
+
+``actuatorgravcomp=True`` alone would be a no-op, since without body-level ``gravcomp`` there is
+no force to route. The :class:`~isaaclab_newton.sim.schemas.MujocoJointCfg` applier therefore sets
+``mjc:gravcomp = 1.0`` on each driven joint's child body (its ``physics:body1`` target) when that
+body has not authored ``mjc:gravcomp`` yet. An explicitly authored value, including ``0.0``, is
+kept, so pass ``MujocoRigidBodyCfg(gravcomp=...)`` in ``rigid_props`` to choose another value:
+
+.. code-block:: python
+
+   import isaaclab.sim as sim_utils
+   from isaaclab.sim.schemas import UsdPhysicsDriveCfg
+   from isaaclab_newton.sim.schemas import MujocoJointCfg, MujocoRigidBodyCfg
+
+   spawn = sim_utils.UsdFileCfg(
+       usd_path="/path/to/robot.usd",
+       rigid_props={"/.*": [MujocoRigidBodyCfg(gravcomp=0.5)]},
+       joint_drive_props={"/.*": [UsdPhysicsDriveCfg(stiffness=40.0), MujocoJointCfg(actuatorgravcomp=True)]},
+   )
 
 Creating missing APIs
 ---------------------
@@ -319,7 +400,7 @@ the simulation mesh, and a mixed PhysX/Newton material:
 See also
 --------
 
-* :ref:`schema-cfgs` — solver-common vs. backend-specific configuration tiers
+* :ref:`schemas-cfg-refactor` — mapping from the removed single-cfg classes to fragments
 * :doc:`/source/api/lab/isaaclab.sim.schemas` — fragment base classes and family writers
 * :doc:`/source/api/lab_physx/isaaclab_physx.sim.schemas` — PhysX fragments
 * :doc:`/source/api/lab_newton/isaaclab_newton.sim.schemas` — Newton / MuJoCo fragments

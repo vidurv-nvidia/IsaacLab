@@ -44,5 +44,5 @@ Keep this skill synchronized section-for-section with the asset migration guide 
 - [Evaluations](evaluations.md)
 - [MJWarp solver tuning](../../../docs/source/how-to/solver_tuning_mjwarp.rst)
 - [Schema fragments](../../../docs/source/concepts/schema_fragments.rst)
-- [Schema configuration classes (legacy, deprecated)](../../../docs/source/concepts/schema_cfgs.rst)
+- [Schema fragments](../../../docs/source/concepts/schema_fragments.rst)
 - [Newton Simulation Tuning guide](https://newton-physics.github.io/newton/latest/concepts/simulation_tuning.html)

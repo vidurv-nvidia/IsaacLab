@@ -3,90 +3,82 @@ isaaclab_physx.sim.schemas
 
 .. automodule:: isaaclab_physx.sim.schemas
 
-  PhysX-specific schema configuration classes. Each cfg below extends a
-  solver-common base in :mod:`isaaclab.sim.schemas` with PhysX-namespaced
-  attributes (``physx*:*``) and applies the corresponding ``Physx*API``
-  applied schema. See :doc:`/source/concepts/schema_cfgs`
-  for the design.
+  PhysX schema fragments. Each fragment authors one PhysX-namespaced attribute group
+  (``physx*:*``) and applies the corresponding ``Physx*API`` applied schema. Compose them with
+  the engine-neutral fragments in :mod:`isaaclab.sim.schemas` in a spawner slot. See
+  :ref:`schema-fragments` for the design.
 
-  .. rubric:: Rigid body and joint drive
+  .. rubric:: Rigid body and joint
 
   .. autosummary::
 
-    PhysxRigidBodyPropertiesCfg
-    PhysxJointDrivePropertiesCfg
+    PhysxRigidBodyCfg
+    PhysxJointCfg
 
   .. rubric:: Collision
 
   .. autosummary::
 
-    PhysxCollisionPropertiesCfg
+    PhysxCollisionCfg
 
   .. rubric:: Articulation root
 
   .. autosummary::
 
-    PhysxArticulationRootPropertiesCfg
+    PhysxArticulationCfg
 
   .. rubric:: Mesh collision (PhysX cooking)
 
   .. autosummary::
 
-    PhysxConvexHullPropertiesCfg
-    PhysxConvexDecompositionPropertiesCfg
-    PhysxTriangleMeshPropertiesCfg
-    PhysxTriangleMeshSimplificationPropertiesCfg
-    PhysxSDFMeshPropertiesCfg
+    PhysxConvexHullCfg
+    PhysxConvexDecompositionCfg
+    PhysxTriangleMeshCfg
+    PhysxTriangleMeshSimplificationCfg
+    PhysxSDFMeshCfg
 
   .. rubric:: Tendon
 
   .. autosummary::
 
-    PhysxFixedTendonPropertiesCfg
     PhysxTendonAxisRootCfg
     PhysxTendonAxisCfg
-    PhysxSpatialTendonPropertiesCfg
     PhysxTendonAttachmentRootCfg
 
   .. rubric:: Deformable body
 
   .. autosummary::
 
-    OmniPhysicsDeformableBodyPropertiesCfg
-    PhysxDeformableBodyPropertiesCfg
     PhysxDeformableBodyCfg
     PhysxSurfaceDeformableBodyCfg
-    DeformableBodyPropertiesCfg
 
   .. rubric:: Functions
 
   .. autosummary::
 
-    define_deformable_body_properties
-    modify_deformable_body_properties
+    apply_physx_joint
 
 .. currentmodule:: isaaclab_physx.sim.schemas
 
-Rigid Body
-----------
+Rigid Body and Joint
+--------------------
 
-.. autoclass:: PhysxRigidBodyPropertiesCfg
+.. autoclass:: PhysxRigidBodyCfg
     :members:
     :show-inheritance:
     :exclude-members: __init__
 
-Joint Drive
------------
-
-.. autoclass:: PhysxJointDrivePropertiesCfg
+.. autoclass:: PhysxJointCfg
     :members:
     :show-inheritance:
     :exclude-members: __init__
+
+.. autofunction:: apply_physx_joint
 
 Collision
 ---------
 
-.. autoclass:: PhysxCollisionPropertiesCfg
+.. autoclass:: PhysxCollisionCfg
     :members:
     :show-inheritance:
     :exclude-members: __init__
@@ -94,7 +86,7 @@ Collision
 Articulation Root
 -----------------
 
-.. autoclass:: PhysxArticulationRootPropertiesCfg
+.. autoclass:: PhysxArticulationCfg
     :members:
     :show-inheritance:
     :exclude-members: __init__
@@ -102,27 +94,27 @@ Articulation Root
 Mesh Collision (PhysX cooking)
 -------------------------------
 
-.. autoclass:: PhysxConvexHullPropertiesCfg
+.. autoclass:: PhysxConvexHullCfg
     :members:
     :show-inheritance:
     :exclude-members: __init__
 
-.. autoclass:: PhysxConvexDecompositionPropertiesCfg
+.. autoclass:: PhysxConvexDecompositionCfg
     :members:
     :show-inheritance:
     :exclude-members: __init__
 
-.. autoclass:: PhysxTriangleMeshPropertiesCfg
+.. autoclass:: PhysxTriangleMeshCfg
     :members:
     :show-inheritance:
     :exclude-members: __init__
 
-.. autoclass:: PhysxTriangleMeshSimplificationPropertiesCfg
+.. autoclass:: PhysxTriangleMeshSimplificationCfg
     :members:
     :show-inheritance:
     :exclude-members: __init__
 
-.. autoclass:: PhysxSDFMeshPropertiesCfg
+.. autoclass:: PhysxSDFMeshCfg
     :members:
     :show-inheritance:
     :exclude-members: __init__
@@ -130,22 +122,12 @@ Mesh Collision (PhysX cooking)
 Tendon
 ------
 
-.. autoclass:: PhysxFixedTendonPropertiesCfg
-    :members:
-    :show-inheritance:
-    :exclude-members: __init__
-
 .. autoclass:: PhysxTendonAxisRootCfg
     :members:
     :show-inheritance:
     :exclude-members: __init__
 
 .. autoclass:: PhysxTendonAxisCfg
-    :members:
-    :show-inheritance:
-    :exclude-members: __init__
-
-.. autoclass:: PhysxSpatialTendonPropertiesCfg
     :members:
     :show-inheritance:
     :exclude-members: __init__
@@ -158,16 +140,6 @@ Tendon
 Deformable Body
 ---------------
 
-.. autoclass:: OmniPhysicsDeformableBodyPropertiesCfg
-    :members:
-    :show-inheritance:
-    :exclude-members: __init__
-
-.. autoclass:: PhysxDeformableBodyPropertiesCfg
-    :members:
-    :show-inheritance:
-    :exclude-members: __init__
-
 .. autoclass:: PhysxDeformableBodyCfg
     :members:
     :show-inheritance:
@@ -178,105 +150,4 @@ Deformable Body
     :show-inheritance:
     :exclude-members: __init__, func
 
-.. autoclass:: DeformableBodyPropertiesCfg
-    :members:
-    :show-inheritance:
-    :exclude-members: __init__
-
-Schema define and modify functions remain unified in
-:mod:`isaaclab.sim.schemas`.
-
-Additional Public Classes
--------------------------
-
-The following classes are part of the public :mod:`isaaclab_physx.sim.schemas` API.
-
-.. currentmodule:: isaaclab_physx.sim.schemas
-
-.. autosummary::
-   :nosignatures:
-
-   ArticulationRootPropertiesCfg
-   CollisionPropertiesCfg
-   ConvexDecompositionPropertiesCfg
-   ConvexHullPropertiesCfg
-   FixedTendonPropertiesCfg
-   JointDrivePropertiesCfg
-   MeshCollisionPropertiesCfg
-   PhysxArticulationCfg
-   PhysxCollisionCfg
-   PhysxConvexDecompositionCfg
-   PhysxConvexHullCfg
-   PhysxJointCfg
-   PhysxRigidBodyCfg
-   PhysxSDFMeshCfg
-   PhysxTriangleMeshCfg
-   PhysxTriangleMeshSimplificationCfg
-   RigidBodyPropertiesCfg
-   SDFMeshPropertiesCfg
-   SpatialTendonPropertiesCfg
-   TriangleMeshPropertiesCfg
-   TriangleMeshSimplificationPropertiesCfg
-
-.. autoclass:: ArticulationRootPropertiesCfg
-   :show-inheritance:
-
-.. autoclass:: CollisionPropertiesCfg
-   :show-inheritance:
-
-.. autoclass:: ConvexDecompositionPropertiesCfg
-   :show-inheritance:
-
-.. autoclass:: ConvexHullPropertiesCfg
-   :show-inheritance:
-
-.. autoclass:: FixedTendonPropertiesCfg
-   :show-inheritance:
-
-.. autoclass:: JointDrivePropertiesCfg
-   :show-inheritance:
-
-.. autoclass:: MeshCollisionPropertiesCfg
-   :show-inheritance:
-
-.. autoclass:: PhysxArticulationCfg
-   :show-inheritance:
-
-.. autoclass:: PhysxCollisionCfg
-   :show-inheritance:
-
-.. autoclass:: PhysxConvexDecompositionCfg
-   :show-inheritance:
-
-.. autoclass:: PhysxConvexHullCfg
-   :show-inheritance:
-
-.. autoclass:: PhysxJointCfg
-   :show-inheritance:
-
-.. autoclass:: PhysxRigidBodyCfg
-   :show-inheritance:
-
-.. autoclass:: PhysxSDFMeshCfg
-   :show-inheritance:
-
-.. autoclass:: PhysxTriangleMeshCfg
-   :show-inheritance:
-
-.. autoclass:: PhysxTriangleMeshSimplificationCfg
-   :show-inheritance:
-
-.. autoclass:: RigidBodyPropertiesCfg
-   :show-inheritance:
-
-.. autoclass:: SDFMeshPropertiesCfg
-   :show-inheritance:
-
-.. autoclass:: SpatialTendonPropertiesCfg
-   :show-inheritance:
-
-.. autoclass:: TriangleMeshPropertiesCfg
-   :show-inheritance:
-
-.. autoclass:: TriangleMeshSimplificationPropertiesCfg
-   :show-inheritance:
+The deformable family writers live in :mod:`isaaclab.sim.schemas`.

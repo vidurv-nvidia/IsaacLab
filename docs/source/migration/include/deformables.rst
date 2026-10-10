@@ -13,7 +13,8 @@ API is deprecated and replaced by two distinct deformable types:
 - **Surface deformables**: 2D surfaces simulated directly on a triangle mesh (cloth, membranes).
   They add stretch, shear, and bend stiffness, but do not support kinematic vertex targets.
 
-The type is determined by the physics material assigned to the object:
+The type is selected by the spawner slot, ``volume_deformable_props`` or
+``surface_deformable_props``, paired with a physics material of the same kind:
 
 - :class:`~isaaclab_physx.sim.PhysxDeformableBodyMaterialCfg` for PhysX volume deformables.
 - :class:`~isaaclab_physx.sim.PhysxSurfaceDeformableBodyMaterialCfg` for PhysX surface deformables.
@@ -22,17 +23,17 @@ The type is determined by the physics material assigned to the object:
 
 .. important::
 
-   The ``*DeformableBodyPropertiesCfg`` classes and the ``deformable_props`` spawner field in this
-   section are themselves now deprecated in favor of the deformable schema fragments and the
-   ``volume_deformable_props`` / ``surface_deformable_props`` spawner slots, and will be removed in
-   3.2. Read this section to understand where a 2.x name went, then migrate to the fragments as
-   described in :ref:`schema fragments <schema-fragments-migration>`. The code samples below show
-   the intermediate step, not the recommended end state.
+   The ``*DeformableBodyPropertiesCfg`` classes and the ``deformable_props`` spawner field that
+   Isaac Lab 3.0 introduced were deprecated in 3.1 and removed in 3.2, in favor of the deformable
+   schema fragments and the ``volume_deformable_props`` / ``surface_deformable_props`` spawner
+   slots. The tables below map the 2.x names straight to their current replacements; see
+   :ref:`schema fragments <schema-fragments-migration>` for the complete mapping.
 
 .. rubric:: Import Changes
 
-Deformable object cfgs remain in ``isaaclab.assets``. Deformable schema and material cfgs are
-backend-specific and move to the backend package:
+Deformable object cfgs remain in ``isaaclab.assets``. Deformable material cfgs are
+backend-specific and move to the backend package; deformable body properties become schema
+fragments in a spawner slot:
 
 .. list-table::
    :header-rows: 1
@@ -40,18 +41,17 @@ backend-specific and move to the backend package:
 
    * - Old Import (``isaaclab.sim``)
      - New Import
-   * - ``DeformableBodyPropertiesCfg``
-     - ``isaaclab_physx.sim.PhysxDeformableBodyPropertiesCfg`` or
-       ``isaaclab_newton.sim.NewtonDeformableBodyPropertiesCfg``
+   * - ``DeformableBodyPropertiesCfg`` (``deformable_props`` field)
+     - ``volume_deformable_props`` / ``surface_deformable_props`` slot with
+       :class:`~isaaclab.sim.schemas.OmniPhysicsDeformableBodyCfg` and, on PhysX,
+       :class:`~isaaclab_physx.sim.schemas.PhysxDeformableBodyCfg`; an empty list creates the
+       body with backend defaults
    * - ``DeformableBodyMaterialCfg``
      - ``isaaclab_physx.sim.PhysxDeformableBodyMaterialCfg`` or
        ``isaaclab_newton.sim.NewtonDeformableBodyMaterialCfg``
    * - ``SurfaceDeformableBodyMaterialCfg``
      - ``isaaclab_physx.sim.PhysxSurfaceDeformableBodyMaterialCfg`` or
        ``isaaclab_newton.sim.NewtonSurfaceDeformableBodyMaterialCfg``
-
-:class:`~isaaclab.sim.DeformableBodyPropertiesBaseCfg` is now empty; the OmniPhysics deformable
-body fields are owned by :class:`~isaaclab_physx.sim.PhysxDeformableBodyPropertiesCfg`.
 
 .. rubric:: Example: Volume Deformable
 
@@ -81,13 +81,13 @@ body fields are owned by :class:`~isaaclab_physx.sim.PhysxDeformableBodyProperti
 
    import isaaclab.sim as sim_utils
    from isaaclab.assets import DeformableObject, DeformableObjectCfg
-   from isaaclab_physx.sim import PhysxDeformableBodyMaterialCfg, PhysxDeformableBodyPropertiesCfg
+   from isaaclab_physx.sim import PhysxDeformableBodyMaterialCfg
 
    cfg = DeformableObjectCfg(
        prim_path="/World/Origin.*/Cube",
        spawn=sim_utils.MeshCuboidCfg(
            size=(0.2, 0.2, 0.2),
-           deformable_props=PhysxDeformableBodyPropertiesCfg(),
+           volume_deformable_props=[],
            visual_material=sim_utils.PreviewSurfaceCfg(),
            physics_material=PhysxDeformableBodyMaterialCfg(poissons_ratio=0.4, youngs_modulus=1e5),
        ),
@@ -122,7 +122,7 @@ The following fields no longer exist:
        PhysX reads collision offsets off the collider, which for a deformable is its simulation
        mesh, so authoring them on the body prim never reached the solver.
 
-:class:`~isaaclab_physx.sim.PhysxDeformableBodyPropertiesCfg` also gained fields from the new
+:class:`~isaaclab_physx.sim.schemas.PhysxDeformableBodyCfg` also gained fields from the new
 schema. See the class reference and the `PhysX deformable schema`_ for the current list.
 
 .. rubric:: Behavior Changes

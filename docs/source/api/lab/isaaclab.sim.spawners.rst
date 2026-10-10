@@ -306,8 +306,6 @@ Materials
     OmniPhysicsSurfaceDeformableMaterialCfg
     DeformableBodyMaterialBaseCfg
     SurfaceDeformableBodyMaterialBaseCfg
-    DeformableBodyMaterialCfg
-    SurfaceDeformableBodyMaterialCfg
 
 Visual Materials
 ~~~~~~~~~~~~~~~~
@@ -365,8 +363,6 @@ Physical Materials
 
 .. autofunction:: spawn_physics_material_from_fragments
 
-.. autofunction:: spawn_rigid_body_material_from_fragments
-
 .. autoclass:: RigidBodyMaterialFragment
     :members:
     :show-inheritance:
@@ -376,12 +372,6 @@ Physical Materials
     :members:
     :show-inheritance:
     :exclude-members: __init__, func
-
-.. deprecated:: 3.0.0
-
-    ``RigidBodyMaterialCfg`` is an alias for
-    :class:`~isaaclab_physx.sim.spawners.materials.PhysxRigidBodyMaterialCfg`.
-    Use the PhysX configuration directly.
 
 .. autoclass:: DeformableMaterialFragment
     :members:
@@ -414,20 +404,7 @@ Physical Materials
 
     Backend-specific deformable material cfgs live in
     :mod:`isaaclab_physx.sim.spawners.materials` and
-    :mod:`isaaclab_newton.sim.spawners.materials`. The legacy default names below
-    are forwarded to the deprecated PhysX aliases for compatibility.
-
-.. autoclass:: DeformableBodyMaterialCfg
-    :no-index:
-    :members:
-    :show-inheritance:
-    :exclude-members: __init__, func
-
-.. autoclass:: SurfaceDeformableBodyMaterialCfg
-    :no-index:
-    :members:
-    :show-inheritance:
-    :exclude-members: __init__, func
+    :mod:`isaaclab_newton.sim.spawners.materials`.
 
 Wrappers
 --------

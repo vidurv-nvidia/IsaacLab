@@ -214,19 +214,15 @@ Volume or surface
 There is no separate cloth asset class. At authoring time the slot sets the kind:
 ``volume_deformable_props`` authors a volume deformable and ``surface_deformable_props`` a surface
 one. That choice decides what USD is authored, a ``UsdGeom.TetMesh`` simulation mesh for volume
-and a triangle ``UsdGeom.Mesh`` copy of the visual mesh for surface. The legacy
-``deformable_props`` field has no type of its own, so it derives the kind from the material cfg: a
-material deriving from :class:`~isaaclab.sim.spawners.materials.SurfaceDeformableBodyMaterialBaseCfg`
-produces a surface deformable, and anything else produces a volume deformable.
+and a triangle ``UsdGeom.Mesh`` copy of the visual mesh for surface.
 
 At initialization the asset re-derives the kind from the stage. PhysX and OvPhysX read the applied
 schema on the bound physics material, falling back to mesh topology when that is inconclusive;
 Newton uses topology alone, treating a ``UsdGeom.TetMesh`` under the prim as volume and a plain
 ``UsdGeom.Mesh`` as surface.
 
-With the legacy ``deformable_props`` field the material cfg is therefore load-bearing: pairing a
-volume material with a cloth-shaped mesh authors a tetrahedralized solid, not a sheet. The slots do
-not depend on the material for the kind.
+Pick the slot and the material together: authoring a surface deformable with a volume material (or
+the reverse) leaves the stage and the bound material disagreeing about the kind.
 
 Tetrahedralization
 ^^^^^^^^^^^^^^^^^^
