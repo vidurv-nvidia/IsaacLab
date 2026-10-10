@@ -127,10 +127,10 @@ Map backend parameters through the official schema docs. Current spawner slots m
 | Isaac Gym / PhysX concern | Isaac Lab PhysX target | Newton target |
 | --- | --- | --- |
 | Simulation-level PhysX settings | `PhysxCfg` on `SimulationCfg.physics` | `NewtonCfg` with a solver cfg such as `MJWarpSolverCfg` |
-| Rigid-body settings | `PhysxRigidBodyPropertiesCfg`, backend-portable `RigidBodyBaseCfg`, or fragments such as `UsdPhysicsRigidBodyCfg` plus `PhysxRigidBodyCfg` | `NewtonRigidBodyPropertiesCfg`, `MujocoRigidBodyPropertiesCfg`, or fragments such as `MujocoRigidBodyCfg` |
-| Collision settings | `PhysxCollisionPropertiesCfg`, `CollisionBaseCfg`, or fragments such as `UsdPhysicsCollisionCfg` plus `PhysxCollisionCfg` | `NewtonCollisionPropertiesCfg`, `NewtonMeshCollisionPropertiesCfg`, `NewtonSDFCollisionPropertiesCfg`, or fragments such as `NewtonCollisionCfg` |
-| Mesh cooking settings | `PhysxConvexHullPropertiesCfg`, `PhysxConvexDecompositionPropertiesCfg`, `PhysxTriangleMeshPropertiesCfg`, `PhysxTriangleMeshSimplificationPropertiesCfg`, or `PhysxSDFMeshPropertiesCfg` | `NewtonMeshCollisionPropertiesCfg` or `NewtonSDFCollisionPropertiesCfg` |
-| Joint-drive settings | `JointDriveBaseCfg` or fragments such as `UsdPhysicsDriveCfg` plus `PhysxJointCfg` | `NewtonJointDrivePropertiesCfg`, `MujocoJointDrivePropertiesCfg`, or fragments such as `MujocoJointCfg` |
+| Rigid-body settings | `UsdPhysicsRigidBodyCfg` plus `PhysxRigidBodyCfg` | `UsdPhysicsRigidBodyCfg` plus `MujocoRigidBodyCfg` |
+| Collision settings | `UsdPhysicsCollisionCfg` plus `PhysxCollisionCfg` | `UsdPhysicsCollisionCfg` plus `PhysxCollisionCfg` (offsets) and `NewtonCollisionCfg` or `MujocoCollisionCfg` |
+| Mesh cooking settings | `UsdPhysicsMeshCollisionCfg` plus `PhysxConvexHullCfg`, `PhysxConvexDecompositionCfg`, `PhysxTriangleMeshCfg`, `PhysxTriangleMeshSimplificationCfg`, or `PhysxSDFMeshCfg` | `UsdPhysicsMeshCollisionCfg` plus `NewtonMeshCollisionCfg`, or `NewtonSDFCollisionCfg` |
+| Joint-drive settings | `UsdPhysicsDriveCfg` plus `PhysxJointCfg` | `UsdPhysicsDriveCfg` plus `MujocoJointCfg` |
 | Material settings | `PhysxRigidBodyMaterialCfg` or `RigidBodyMaterialBaseCfg` | `NewtonMaterialPropertiesCfg` |
 
 For multi-backend tasks, use `PresetCfg` variants so the PhysX and Newton configs can differ cleanly. Keep backend-specific ranges, solver values, and unsupported options in separate presets.

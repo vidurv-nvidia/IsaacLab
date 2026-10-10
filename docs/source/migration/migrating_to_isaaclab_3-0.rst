@@ -236,174 +236,74 @@ If you need to import Newton implementations directly (e.g., for type hints or s
 
 .. rubric:: Schema Configuration Class Refactor
 
-In Isaac Lab 3.0, the spawner schema cfg classes are split into solver-common
-**base classes** (in ``isaaclab.sim.schemas``) and **backend-specific subclasses**
-in ``isaaclab_physx.sim.schemas`` and ``isaaclab_newton.sim.schemas``. This makes
-the same asset cfg portable across PhysX and Newton backends, and adds slots
-for backend-specific asset-level knobs (e.g., MuJoCo gravity compensation).
+Isaac Lab 3.0 split the 2.x spawner schema cfgs into solver-common ``*BaseCfg`` classes in
+``isaaclab.sim.schemas`` and backend-specific ``*PropertiesCfg`` subclasses in
+``isaaclab_physx.sim.schemas`` and ``isaaclab_newton.sim.schemas``. Isaac Lab 3.1 deprecated
+that whole layer in favor of :ref:`schema fragments <schema-fragments>`, and **Isaac Lab 3.2
+removed it**: the ``*BaseCfg`` / ``*PropertiesCfg`` classes, the ``define_*`` / ``modify_*``
+schema writers, the 2.x aliases, and the spawner code paths that accepted them no longer exist.
+Importing a removed name raises ``ImportError`` / ``AttributeError``.
 
-For the full design, see :ref:`schema-cfgs`.
+The tables below map every removed name to its replacement. For where each fragment lives and
+how the names are formed, see :ref:`schema-fragments-placement`.
 
-**Class moves and renames**
+**2.x names**
 
-.. important::
-
-   The ``*BaseCfg`` / ``*PropertiesCfg`` classes in this subsection are themselves
-   now deprecated in favor of schema fragments, and will be removed in 3.2. Read
-   this subsection to understand where a 2.x name went, then migrate to the
-   fragments as described in :ref:`schema fragments <schema-fragments-migration>`. The code samples
-   below show the intermediate step, not the recommended end state.
-
-The following 2.x class names are kept as deprecated aliases. They forward to
-the new location and will be removed in 3.2.
+The 2.x names were kept as deprecated aliases through 3.1 and were removed in 3.2. Migrate
+them straight to the fragments listed in the next table for their 3.0 counterpart.
 
 .. list-table::
    :header-rows: 1
    :widths: 40 60
 
-   * - Isaac Lab 2.x
-     - Isaac Lab 3.0
+   * - Isaac Lab 2.x (removed in 3.2)
+     - Isaac Lab 3.0 counterpart (removed in 3.2)
    * - ``RigidBodyPropertiesCfg``
-     - :class:`~isaaclab.sim.schemas.RigidBodyBaseCfg` (solver-common fields) +
-       :class:`~isaaclab_physx.sim.schemas.PhysxRigidBodyPropertiesCfg` (PhysX-specific)
+     - ``RigidBodyBaseCfg`` (solver-common fields) + ``PhysxRigidBodyPropertiesCfg`` (PhysX-specific)
    * - ``JointDrivePropertiesCfg``
-     - :class:`~isaaclab.sim.schemas.JointDriveBaseCfg` +
-       :class:`~isaaclab_physx.sim.schemas.PhysxJointDrivePropertiesCfg`
+     - ``JointDriveBaseCfg`` + ``PhysxJointDrivePropertiesCfg``
    * - ``CollisionPropertiesCfg``
-     - :class:`~isaaclab.sim.schemas.CollisionBaseCfg` +
-       :class:`~isaaclab_physx.sim.schemas.PhysxCollisionPropertiesCfg`
+     - ``CollisionBaseCfg`` + ``PhysxCollisionPropertiesCfg``
    * - ``ArticulationRootPropertiesCfg``
-     - :class:`~isaaclab.sim.schemas.ArticulationRootBaseCfg` +
-       :class:`~isaaclab_physx.sim.schemas.PhysxArticulationRootPropertiesCfg`
-   * - ``RigidBodyMaterialCfg``
-     - :class:`~isaaclab.sim.spawners.materials.RigidBodyMaterialBaseCfg` +
-       :class:`~isaaclab_physx.sim.spawners.materials.PhysxRigidBodyMaterialCfg`
+     - ``ArticulationRootBaseCfg`` + ``PhysxArticulationRootPropertiesCfg``
    * - ``MeshCollisionPropertiesCfg`` family (``ConvexHullPropertiesCfg``,
        ``ConvexDecompositionPropertiesCfg``, ``TriangleMeshPropertiesCfg``,
        ``TriangleMeshSimplificationPropertiesCfg``, ``SDFMeshPropertiesCfg``)
-     - :class:`~isaaclab.sim.schemas.MeshCollisionBaseCfg` +
-       ``Physx*PropertiesCfg`` family in :mod:`isaaclab_physx.sim.schemas`
+     - ``MeshCollisionBaseCfg`` + ``Physx*PropertiesCfg`` cooking family
    * - ``FixedTendonPropertiesCfg``, ``SpatialTendonPropertiesCfg``
-     - :class:`~isaaclab_physx.sim.schemas.PhysxFixedTendonPropertiesCfg`,
-       :class:`~isaaclab_physx.sim.schemas.PhysxSpatialTendonPropertiesCfg`
+     - ``PhysxFixedTendonPropertiesCfg``, ``PhysxSpatialTendonPropertiesCfg``
+       (replaced by :class:`~isaaclab_physx.sim.schemas.PhysxTendonAxisRootCfg` /
+       :class:`~isaaclab_physx.sim.schemas.PhysxTendonAxisCfg` and
+       :class:`~isaaclab_physx.sim.schemas.PhysxTendonAttachmentRootCfg` in the
+       ``fixed_tendons_props`` / ``spatial_tendons_props`` slots)
+   * - ``RigidBodyMaterialCfg``
+     - :class:`~isaaclab_physx.sim.spawners.materials.PhysxRigidBodyMaterialCfg` (PhysX
+       fields) or :class:`~isaaclab.sim.spawners.materials.RigidBodyMaterialBaseCfg`
+       (solver-common fields only); both remain available
+   * - ``DeformableBodyMaterialCfg``, ``SurfaceDeformableBodyMaterialCfg``
+     - :class:`~isaaclab_physx.sim.spawners.materials.PhysxDeformableBodyMaterialCfg`,
+       :class:`~isaaclab_physx.sim.spawners.materials.PhysxSurfaceDeformableBodyMaterialCfg`;
+       both remain available
+   * - ``spawn_rigid_body_material_from_fragments``
+     - :func:`~isaaclab.sim.spawners.materials.spawn_physics_material_from_fragments`
 
-**Code migration**
-
-Existing 2.x code continues to work via the deprecation aliases (with a
-``DeprecationWarning``; removed in 3.2):
-
-.. code-block:: python
-
-   # Isaac Lab 2.x
-   import isaaclab.sim as sim_utils
-   rigid_props = sim_utils.RigidBodyPropertiesCfg(disable_gravity=True, linear_damping=0.1)
-
-Recommended 3.0 pattern when targeting PhysX:
-
-.. code-block:: python
-
-   # Isaac Lab 3.0 — PhysX backend
-   from isaaclab_physx.sim.schemas import PhysxRigidBodyPropertiesCfg
-   rigid_props = PhysxRigidBodyPropertiesCfg(disable_gravity=True, linear_damping=0.1)
-
-Backend-portable 3.0 pattern (universal-physics fields only):
-
-.. code-block:: python
-
-   # Isaac Lab 3.0 — backend-portable
-   from isaaclab.sim.schemas import RigidBodyBaseCfg
-   rigid_props = RigidBodyBaseCfg(rigid_body_enabled=True, disable_gravity=True)
-
-**Field renames on** ``JointDriveBaseCfg``
-
-Two cfg fields were renamed so their snake_case names map identity-style to the
-USD camelCase attribute names. The old names remain as deprecated dataclass
-fields on :class:`~isaaclab.sim.schemas.JointDriveBaseCfg` (so
-``dataclasses.fields()`` still sees them) and are forwarded to the new fields
-in ``__post_init__`` with a ``DeprecationWarning``. Setting **both** the old
-and new field on the same instance is silent — the canonical (new) field
-wins; the old field's value is discarded after the warning. Both aliases are
-scheduled for removal in 4.0.
-
-.. list-table::
-   :header-rows: 1
-   :widths: 35 35 30
-
-   * - Isaac Lab 2.x
-     - Isaac Lab 3.0
-     - USD attribute (unchanged)
-   * - :attr:`~isaaclab.sim.schemas.JointDriveBaseCfg.max_velocity`
-     - :attr:`~isaaclab.sim.schemas.JointDriveBaseCfg.max_joint_velocity`
-     - ``physxJoint:maxJointVelocity``
-   * - :attr:`~isaaclab.sim.schemas.JointDriveBaseCfg.max_effort`
-     - :attr:`~isaaclab.sim.schemas.JointDriveBaseCfg.max_force`
-     - ``drive:<axis>:physics:maxForce``
-
-Isaac Lab 2.x style still works (emits ``DeprecationWarning``; removed in 3.2):
-
-.. code-block:: python
-
-   import isaaclab.sim as sim_utils
-   sim_utils.JointDrivePropertiesCfg(max_effort=80.0, max_velocity=5.0)
-
-Recommended 3.0 pattern, backend-portable:
-
-.. code-block:: python
-
-   from isaaclab.sim.schemas import JointDriveBaseCfg
-   JointDriveBaseCfg(max_force=80.0, max_joint_velocity=5.0)
-
-Recommended 3.0 pattern, PhysX-targeted:
-
-.. code-block:: python
-
-   from isaaclab_physx.sim.schemas import PhysxJointDrivePropertiesCfg
-   PhysxJointDrivePropertiesCfg(max_force=80.0, max_joint_velocity=5.0)
-
-**New Newton and MuJoCo cfg classes**
-
-For the Newton backend (and Newton's MuJoCo solver), new cfg classes are
-available under :mod:`isaaclab_newton.sim.schemas`:
-
-.. list-table::
-   :header-rows: 1
-   :widths: 50 50
-
-   * - Class
-     - Use case
-   * - :class:`~isaaclab_newton.sim.schemas.NewtonCollisionPropertiesCfg`
-     - ``newton:contactMargin`` / ``newton:contactGap`` via ``NewtonCollisionAPI``
-   * - :class:`~isaaclab_newton.sim.schemas.NewtonMeshCollisionPropertiesCfg`
-     - ``newton:maxHullVertices`` via ``NewtonMeshCollisionAPI``
-   * - :class:`~isaaclab_newton.sim.schemas.NewtonMaterialPropertiesCfg`
-     - ``newton:torsionalFriction`` / ``newton:rollingFriction`` via ``NewtonMaterialAPI``
-   * - :class:`~isaaclab_newton.sim.schemas.NewtonArticulationRootPropertiesCfg`
-     - ``newton:selfCollisionEnabled`` via ``NewtonArticulationRootAPI``
-   * - :class:`~isaaclab_newton.sim.schemas.MujocoRigidBodyPropertiesCfg`
-     - ``mjc:gravcomp`` (body-level gravity compensation, MuJoCo solver only)
-   * - :class:`~isaaclab_newton.sim.schemas.MujocoJointDrivePropertiesCfg`
-     - ``mjc:actuatorgravcomp`` via ``MjcJointAPI`` (joint-level routing)
-
-The MuJoCo cfgs subclass their Newton parent because MuJoCo is one of Newton's
-solver options.
+The material entries are the only rows whose replacement is not a fragment: the material
+cfgs above stay available next to the material fragments.
 
 .. _schema-fragments-migration:
 
-**Schema fragments supersede the whole** ``*PropertiesCfg`` / ``*BaseCfg`` **layer**
+**Schema fragments replace the whole** ``*PropertiesCfg`` / ``*BaseCfg`` **layer**
 
-The split above kept the inheritance-based shape of the 2.x cfgs: one class per
-backend, each carrying fields from several USD namespaces. Isaac Lab now
-replaces that layer with **schema fragments** — one ``@configclass`` per USD
+The 3.0 split kept the inheritance-based shape of the 2.x cfgs: one class per
+backend, each carrying fields from several USD namespaces. Isaac Lab replaces that layer with **schema fragments** — one ``@configclass`` per USD
 applied schema, each writing exactly one attribute namespace. A spawner slot
 takes a *list* of fragments, so you compose the namespaces you actually want
 instead of picking a class that bundles them.
 
-Every class in the table below is deprecated: instantiating one emits a
-``DeprecationWarning`` naming its replacement, and the class will be removed in
-3.2. Nothing is removed in 3.0 — both APIs work side by side.
+Every class in the table below was deprecated in 3.1 and removed in 3.2.
 
-The replacement column lists **every** fragment needed to cover the deprecated
-class's fields, including the fields it inherits from a legacy base. A legacy
+The replacement column lists **every** fragment needed to cover the removed
+class's fields, including the fields it inherited from a legacy base. A legacy
 class usually bundles more than one USD namespace, so replacing it with only the
 backend-specific fragment silently drops the inherited properties.
 
@@ -411,7 +311,7 @@ backend-specific fragment silently drops the inherited properties.
    :header-rows: 1
    :widths: 40 60
 
-   * - Deprecated class
+   * - Removed class
      - Fragment replacement (complete set)
    * - ``MassPropertiesCfg``
      - :class:`~isaaclab.sim.schemas.MassCfg`
@@ -469,7 +369,7 @@ backend-specific fragment silently drops the inherited properties.
        :class:`~isaaclab_physx.sim.schemas.PhysxCollisionCfg` +
        :class:`~isaaclab_newton.sim.schemas.NewtonCollisionCfg`;
        ``mesh_collision_props``: :class:`~isaaclab_newton.sim.schemas.NewtonSDFCollisionCfg`
-       (authors no ``physics:approximation`` token, like the deprecated class)
+       (authors no ``physics:approximation`` token, like the removed class)
    * - ``DeformableBodyPropertiesBaseCfg``
      - None: the class has no fields. Pass
        :class:`~isaaclab.sim.schemas.DeformableBodyFragment` subclasses in a deformable slot, and
@@ -500,9 +400,9 @@ backend-specific fragment silently drops the inherited properties.
 
 **Deformable bodies: pick the slot**
 
-The slot now selects the deformable type. Replace ``deformable_props`` with
-``surface_deformable_props`` when its physics material is a surface deformable material;
-otherwise use ``volume_deformable_props``. An empty slot creates a body with backend defaults,
+The slot selects the deformable type. The ``deformable_props`` spawner field was removed in
+3.2: replace it with ``surface_deformable_props`` when its physics material is a surface
+deformable material; otherwise use ``volume_deformable_props``. An empty slot creates a body with backend defaults,
 including on Newton. Add only the fragments whose values you need to set. The active backend
 chooses the deformable schemas, whereas the legacy cfg type chose them previously.
 
@@ -531,7 +431,7 @@ when preserving authored USD on a pre-authored asset matters.
 
 .. code-block:: python
 
-   # Deprecated: one class bundling the physics:* and physxRigidBody:* namespaces
+   # Removed in 3.2: one class bundling the physics:* and physxRigidBody:* namespaces
    import isaaclab.sim as sim_utils
    rigid_props = sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=False, linear_damping=0.1)
 
@@ -553,15 +453,15 @@ lets one spawner cfg target different prims with different properties:
 
    rigid_props = {"/.*": [UsdPhysicsRigidBodyCfg(kinematic_enabled=False)]}
 
-Three legacy fields are not USD attributes and therefore have no fragment. They
-move to the spawner cfg instead — no fragment covers them, so a migration that
+Three legacy fields were not USD attributes and therefore have no fragment. They
+moved to the spawner cfg instead — no fragment covers them, so a migration that
 only swaps cfg classes drops them:
 
 .. list-table::
    :header-rows: 1
    :widths: 50 50
 
-   * - Deprecated cfg field
+   * - Removed cfg field
      - Fragment-API replacement
    * - ``ArticulationRootBaseCfg.fix_root_link``
      - ``fix_root_link`` on the spawner cfg, forwarded as the ``fix_root_link``
@@ -584,8 +484,8 @@ of :attr:`~isaaclab_physx.sim.schemas.PhysxJointCfg.max_joint_velocity`.
 
 **Schema writers**
 
-The ``define_*`` and ``modify_*`` writers are deprecated alongside the cfgs and
-will be removed in 3.2. Each has an ``apply_*`` counterpart that takes a
+The ``define_*`` and ``modify_*`` writers were deprecated alongside the cfgs in 3.1 and
+removed in 3.2. Each has an ``apply_*`` counterpart that takes a
 prim-path *expression* (a regular expression over whole prim paths) and a list
 of fragments, so one call can author a whole subtree:
 
@@ -593,7 +493,7 @@ of fragments, so one call can author a whole subtree:
    :header-rows: 1
    :widths: 55 45
 
-   * - Deprecated writer
+   * - Removed writer
      - Replacement
    * - ``define_rigid_body_properties``, ``modify_rigid_body_properties``
      - :func:`~isaaclab.sim.schemas.apply_rigid_body_properties`
@@ -618,53 +518,55 @@ of fragments, so one call can author a whole subtree:
 
 .. code-block:: python
 
-   # Deprecated: authors one prim, takes a single bundled cfg
+   # Removed in 3.2: authored one prim, took a single bundled cfg
    sim_utils.modify_rigid_body_properties("/World/Robot/base", RigidBodyPropertiesCfg(linear_damping=0.1))
 
    # Recommended: authors every matching prim, takes a fragment list
    sim_utils.apply_rigid_body_properties("/World/Robot/.*", [PhysxRigidBodyCfg(linear_damping=0.1)])
 
-``define_deformable_curve_properties`` is not deprecated: there is no curve
+``define_deformable_curve_properties`` remains available: there is no curve
 fragment family to replace it.
 
-**Silencing the warnings while you migrate**
+**Renamed fields**
 
-The warnings are standard ``DeprecationWarning``\ s. Filter them by *message*
-while a migration is in progress:
+Two fields were renamed so their snake_case names map identity-style to the USD camelCase
+attribute names. The old names remain as deprecated aliases on the fragments, forward to the new
+field with a ``DeprecationWarning``, and are scheduled for removal in 4.0. Setting **both** on the
+same instance is silent — the canonical (new) field wins.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 35 30
+
+   * - Deprecated alias
+     - Field
+     - USD attribute
+   * - ``UsdPhysicsDriveCfg.max_effort``
+     - :attr:`~isaaclab.sim.schemas.UsdPhysicsDriveCfg.max_force`
+     - ``drive:<axis>:physics:maxForce``
+   * - ``PhysxJointCfg.max_velocity``
+     - :attr:`~isaaclab_physx.sim.schemas.PhysxJointCfg.max_joint_velocity`
+     - ``physxJoint:maxJointVelocity``
+
+To silence the alias warnings while you migrate, filter them by *message*:
 
 .. code-block:: python
 
    import warnings
 
-   # Silence one legacy symbol.
-   warnings.filterwarnings("ignore", category=DeprecationWarning, message=r"RigidBodyPropertiesCfg is deprecated")
-
-   # Silence every legacy schema cfg and writer at once.
-   warnings.filterwarnings("ignore", category=DeprecationWarning, message=r"\w+ is deprecated\. Use ")
-
-   # Silence the renamed joint-drive field aliases (``max_effort``, ``max_velocity``).
    warnings.filterwarnings("ignore", category=DeprecationWarning, message=r"'\w+' is deprecated; use ")
-
-.. warning::
-
-   Do not filter these with ``module="isaaclab.sim.schemas.*"``. ``module`` is
-   matched against the ``__name__`` of the frame selected by the warning's
-   ``stacklevel``, and these warnings deliberately point at *your* call site, so
-   they are attributed to the module that constructed the cfg or called the
-   writer — never ``isaaclab.sim.schemas``. A ``module=`` filter silences
-   nothing here.
 
 .. note::
 
-   Spawners auto-enable body-level gravity compensation when joint-level
-   ``actuatorgravcomp=True`` is requested but no Mujoco rigid-body cfg is
-   provided — without ``gravcomp`` on the bodies, ``actuatorgravcomp`` is a
-   no-op (no forces to route). To override, pass an explicit
-   ``MujocoRigidBodyPropertiesCfg`` in ``rigid_props``. See
-   :ref:`schema-cfgs-gravcomp` for details.
+   When :class:`~isaaclab_newton.sim.schemas.MujocoJointCfg` requests
+   ``actuatorgravcomp=True``, its applier enables body-level ``mjc:gravcomp = 1.0`` on each
+   driven joint's child body that has not authored it — without body-level ``gravcomp``,
+   ``actuatorgravcomp`` is a no-op (no forces to route). To choose another value, pass
+   :class:`~isaaclab_newton.sim.schemas.MujocoRigidBodyCfg` in ``rigid_props``. See
+   :ref:`schema-fragments-gravcomp` for details.
 
-For complete tables of which fields live on which class and where each lands in
-USD, see :ref:`schema-cfgs`.
+For where each fragment lives and which USD namespace it writes, see
+:ref:`schema-fragments-placement`.
 
 
 .. rubric:: Multi-Backend Support: PresetCfg Pattern

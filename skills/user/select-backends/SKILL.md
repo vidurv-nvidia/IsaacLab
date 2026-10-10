@@ -50,7 +50,7 @@ uv run --no-project python tools/skills/cli.py check
 
 ## Maintenance
 
-Keep this skill synchronized with `docs/source/concepts/physics_backends.rst`, `docs/source/concepts/backend_architecture.rst`, `docs/source/concepts/backends_and_presets.rst`, `docs/source/concepts/schema_cfgs.rst`, and backend-aware task examples under `source/isaaclab_tasks/isaaclab_tasks/`. If backend docs are incomplete, improve the docs rather than expanding this skill into a backend reference.
+Keep this skill synchronized with `docs/source/concepts/physics_backends.rst`, `docs/source/concepts/backend_architecture.rst`, `docs/source/concepts/backends_and_presets.rst`, `docs/source/concepts/schema_fragments.rst`, and backend-aware task examples under `source/isaaclab_tasks/isaaclab_tasks/`. If backend docs are incomplete, improve the docs rather than expanding this skill into a backend reference.
 
 ## References
 
@@ -61,6 +61,6 @@ Keep this skill synchronized with `docs/source/concepts/physics_backends.rst`, `
 - [Backend architecture](../../../docs/source/concepts/backend_architecture.rst)
 - [Backends and presets](../../../docs/source/concepts/backends_and_presets.rst)
 - [Renderers, including asynchronous rendering](../../../docs/source/concepts/renderers.rst)
-- [Schema cfgs](../../../docs/source/concepts/schema_cfgs.rst)
+- [Schema fragments](../../../docs/source/concepts/schema_fragments.rst)
 - [Installation](../../../docs/source/setup/installation/index.rst)
 - [Task examples](../../../source/isaaclab_tasks/isaaclab_tasks)

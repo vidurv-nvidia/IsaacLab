@@ -15,9 +15,9 @@ Use these checks to route investigation, not as standalone migration docs:
 | Task names include the old Gym version suffix, such as `-v0` | Current task docs and the environment catalog; use suffixless task names in examples |
 | Visualizer launch behavior changed | `docs/source/migration/migrating_to_isaaclab_3-0.rst` and `source/isaaclab/isaaclab/app/sim_launcher.py` |
 | Camera examples include obsolete launch options | Current sensor, renderer, and visualization docs; camera support is automatic |
-| Backend-specific physics or schema cfgs | `docs/source/concepts/backend_architecture.rst` and `docs/source/concepts/schema_cfgs.rst` |
+| Backend-specific physics or schema cfgs | `docs/source/concepts/backend_architecture.rst` and `docs/source/concepts/schema_fragments.rst` |
 | Imports of PhysX/Newton schema cfgs from `isaaclab.sim.schemas` | Move backend-specific imports to `isaaclab_physx.sim.schemas` or `isaaclab_newton.sim.schemas`; core forwarding shims are deprecated |
-| Spawner schema overrides that need multiple namespaces in one slot | Prefer schema fragments such as `UsdPhysicsDriveCfg`, `PhysxJointCfg`, `NewtonCollisionCfg`, or `MujocoJointCfg` instead of forcing one legacy property cfg to carry every backend attribute |
+| Single `*PropertiesCfg` / `*BaseCfg` schema cfgs in spawner slots | Removed in 3.2; compose schema fragments such as `UsdPhysicsDriveCfg`, `PhysxJointCfg`, `NewtonCollisionCfg`, or `MujocoJointCfg` using the mapping in `docs/source/migration/migrating_to_isaaclab_3-0.rst` |
 | Quaternion order changed from WXYZ to XYZW | `docs/source/migration/migrating_to_isaaclab_3-0.rst` and `scripts/tools/find_quaternions.py` |
 | Asset or sensor data no longer behaves like plain tensors | `ProxyArray` sections in `docs/source/migration/migrating_to_isaaclab_3-0.rst` |
 | `root_physx_view` or object API warnings | asset view sections in `docs/source/migration/migrating_to_isaaclab_3-0.rst` |
@@ -32,8 +32,7 @@ The external prototype migration skill called out useful search terms. Before us
 - `SimulationCfg.physics`
 - `PhysxCfg`
 - `isaaclab.sim.schemas`
-- `PhysxRigidBodyPropertiesCfg`
-- `NewtonCollisionPropertiesCfg`
+- `*PropertiesCfg` / `*BaseCfg` schema cfgs (removed in 3.2; map them to schema fragments)
 - `UsdPhysicsDriveCfg`
 - `PhysxJointCfg`
 - `MujocoJointCfg`
