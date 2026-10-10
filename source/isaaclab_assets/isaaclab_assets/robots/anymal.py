@@ -79,7 +79,7 @@ ANYMAL_B_CFG = ArticulationCfg(
             ),
             NewtonArticulationCfg(self_collision_enabled=True),
         ],
-        # collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.02, rest_offset=0.0),
+        # collision_props=PhysxCollisionCfg(contact_offset=0.02, rest_offset=0.0),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(0.0, 0.0, 0.6),
@@ -117,7 +117,7 @@ ANYMAL_C_CFG = ArticulationCfg(
             ),
             NewtonArticulationCfg(self_collision_enabled=True),
         ],
-        # collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.02, rest_offset=0.0),
+        # collision_props=PhysxCollisionCfg(contact_offset=0.02, rest_offset=0.0),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(0.0, 0.0, 0.6),
@@ -155,7 +155,7 @@ ANYMAL_D_CFG = ArticulationCfg(
             ),
             NewtonArticulationCfg(self_collision_enabled=True),
         ],
-        # collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.02, rest_offset=0.0),
+        # collision_props=PhysxCollisionCfg(contact_offset=0.02, rest_offset=0.0),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(0.0, 0.0, 0.6),

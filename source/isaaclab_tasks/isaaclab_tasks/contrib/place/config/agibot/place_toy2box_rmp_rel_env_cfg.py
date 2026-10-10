@@ -341,7 +341,7 @@ class RmpFlowAgibotPlaceToy2BoxEnvCfg(PlaceToy2BoxEnvCfg):
         box_properties = toy_truck_properties.copy()
 
         # Notes: remember to add Physics/Mass properties to the toy_truck mesh to make grasping successful,
-        # then you can use below MassPropertiesCfg to set the mass of the toy_truck
+        # then you can use below MassCfg to set the mass of the toy_truck
         toy_mass_properties = [MassCfg(mass=0.05)]
 
         self.scene.toy_truck = RigidObjectCfg(

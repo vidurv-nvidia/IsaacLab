@@ -47,7 +47,7 @@ FRANKA_PANDA_LEGACY_CFG = ArticulationCfg(
             ),
             NewtonArticulationCfg(self_collision_enabled=True),
         ],
-        # collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
+        # collision_props=PhysxCollisionCfg(contact_offset=0.005, rest_offset=0.0),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
         joint_pos={

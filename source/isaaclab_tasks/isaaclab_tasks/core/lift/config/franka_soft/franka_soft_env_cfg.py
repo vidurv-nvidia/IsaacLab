@@ -14,10 +14,9 @@ from isaaclab_newton.physics import (
     NewtonSoftContactCfg,
     VBDSolverCfg,
 )
-from isaaclab_newton.sim.schemas import NewtonDeformableBodyPropertiesCfg
 from isaaclab_newton.sim.spawners.materials import NewtonDeformableBodyMaterialCfg
 from isaaclab_physx.physics import PhysxCfg
-from isaaclab_physx.sim.schemas import PhysxCollisionCfg, PhysxDeformableBodyPropertiesCfg
+from isaaclab_physx.sim.schemas import PhysxCollisionCfg, PhysxDeformableBodyCfg
 from isaaclab_physx.sim.spawners.materials import PhysxDeformableBodyMaterialCfg
 
 import isaaclab.sim as sim_utils
@@ -91,7 +90,7 @@ class DeformableCfg(PresetCfg):
         spawn=sim_utils.MeshCuboidCfg(
             size=(0.3, 0.04, 0.04),
             edge_refinement=8.0,
-            deformable_props=NewtonDeformableBodyPropertiesCfg(),
+            volume_deformable_props=[],
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.45, 0.45, 0.85)),
             physics_material=NewtonDeformableBodyMaterialCfg(
                 density=1000.0,
@@ -108,7 +107,10 @@ class DeformableCfg(PresetCfg):
         spawn=sim_utils.MeshCuboidCfg(
             size=(0.3, 0.04, 0.04),
             edge_refinement=8.0,
-            deformable_props=PhysxDeformableBodyPropertiesCfg(),
+            volume_deformable_props=[
+                sim_utils.OmniPhysicsDeformableBodyCfg(kinematic_enabled=False),
+                PhysxDeformableBodyCfg(solver_position_iteration_count=16),
+            ],
             collision_props=PhysxCollisionCfg(rest_offset=0.0025, contact_offset=0.01),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.45, 0.45, 0.85)),
             physics_material=PhysxDeformableBodyMaterialCfg(
