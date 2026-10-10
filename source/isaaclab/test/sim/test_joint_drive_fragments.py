@@ -190,8 +190,7 @@ def test_apply_joint_drive_properties_without_drive_does_not_apply_drive_api():
 
 def test_apply_joint_drive_properties_skips_tendon_child_joint():
     """A tendon-child joint (``PhysxTendonAxisAPI`` without the root API) must be skipped wholesale
-    by the dispatch loop: no fragment -- drive, physxJoint, or mjc -- may author on it, matching the
-    legacy :func:`modify_joint_drive_properties` writer (which skipped the whole prim)."""
+    by the dispatch loop: no fragment -- drive, physxJoint, or mjc -- may author on it."""
     from isaaclab_physx.sim.schemas import PhysxJointCfg
 
     from pxr import PhysxSchema

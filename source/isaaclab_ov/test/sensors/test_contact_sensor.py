@@ -508,11 +508,11 @@ def test_heterogeneous_clone_contact_report_order(device, filter_collisions):
         cfg.shape = CUBE_CFG.replace(prim_path="{ENV_REGEX_NS}/Object")
         cfg.shape.spawn = sim_utils.MultiAssetSpawnerCfg(
             assets_cfg=[
-                sim_utils.CuboidCfg(size=(0.2, 0.2, 0.2), mass_props=sim_utils.MassPropertiesCfg(mass=1.0)),
-                sim_utils.SphereCfg(radius=0.1, mass_props=sim_utils.MassPropertiesCfg(mass=2.0)),
+                sim_utils.CuboidCfg(size=(0.2, 0.2, 0.2), mass_props=sim_utils.MassCfg(mass=1.0)),
+                sim_utils.SphereCfg(radius=0.1, mass_props=sim_utils.MassCfg(mass=2.0)),
             ],
-            rigid_props=sim_utils.RigidBodyBaseCfg(),
-            collision_props=sim_utils.CollisionBaseCfg(),
+            rigid_props=sim_utils.UsdPhysicsRigidBodyCfg(),
+            collision_props=sim_utils.UsdPhysicsCollisionCfg(),
             activate_contact_sensors=True,
         )
         cfg.shape.init_state.pos = (0.0, 0.0, 0.5)
@@ -520,8 +520,8 @@ def test_heterogeneous_clone_contact_report_order(device, filter_collisions):
             prim_path="{ENV_REGEX_NS}/Support",
             spawn=sim_utils.CuboidCfg(
                 size=(1.0, 1.0, 0.2),
-                rigid_props=sim_utils.RigidBodyBaseCfg(kinematic_enabled=True),
-                collision_props=sim_utils.CollisionBaseCfg(),
+                rigid_props=sim_utils.UsdPhysicsRigidBodyCfg(kinematic_enabled=True),
+                collision_props=sim_utils.UsdPhysicsCollisionCfg(),
             ),
             init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.2)),
         )
