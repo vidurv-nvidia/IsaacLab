@@ -11,17 +11,19 @@ from unittest.mock import Mock
 import pytest
 import torch
 import warp as wp
+from isaaclab_physx.sim.schemas import PhysxDeformableBodyCfg
 
 from pxr import Usd, UsdGeom, UsdPhysics
 
 from isaaclab.assets import Asset
 from isaaclab.cloner import make_clone_plan
 from isaaclab.managers import CommandTerm, ObservationTermCfg, SceneEntityCfg
-from isaaclab.sim import MeshCapsuleCfg, MeshCuboidCfg, MultiAssetSpawnerCfg, use_stage
+from isaaclab.sim import MeshCapsuleCfg, MeshCuboidCfg, MultiAssetSpawnerCfg, OmniPhysicsDeformableBodyCfg, use_stage
 from isaaclab.utils.warp import ProxyArray
 
 from isaaclab_tasks.core.lift import mdp
 from isaaclab_tasks.core.lift.config.franka.franka_env_cfg import FrankaLiftEnvCfg
+from isaaclab_tasks.core.lift.config.franka_soft.franka_cloth_env_cfg import FrankaClothEnvCfg
 from isaaclab_tasks.core.lift.config.franka_soft.franka_soft_env_cfg import FrankaSoftEnvCfg
 from isaaclab_tasks.core.lift.mdp.commands import pose_commands
 from isaaclab_tasks.core.lift.mdp.commands.pose_commands import (
@@ -30,6 +32,7 @@ from isaaclab_tasks.core.lift.mdp.commands.pose_commands import (
     ObjectUniformPoseCommand,
 )
 from isaaclab_tasks.core.lift.mdp.utils import collect_collision_meshes
+from isaaclab_tasks.utils import hydra as hydra_mod
 from isaaclab_tasks.utils.hydra import resolve_presets
 
 
@@ -67,6 +70,23 @@ def test_franka_soft_robot_physics_variant_matches_backend(
     cfg = resolve_presets(FrankaSoftEnvCfg(), selected=selected_presets)
 
     assert cfg.scene.robot.spawn.variants == {"Physics": expected_physics, "Colliders": "primitives"}
+
+
+@pytest.mark.parametrize(
+    ("env_cfg_cls", "slot"),
+    [(FrankaSoftEnvCfg, "volume_deformable_props"), (FrankaClothEnvCfg, "surface_deformable_props")],
+)
+def test_franka_deformable_presets_use_fragment_slots(env_cfg_cls, slot: str) -> None:
+    """The deformable presets author through fragment slots that CLI overrides can index into."""
+    newton_spawn = resolve_presets(env_cfg_cls(), selected=("newton_mjwarp_vbd_proxy",)).scene.deformable.spawn
+    assert getattr(newton_spawn, slot) == []
+
+    cfg = resolve_presets(env_cfg_cls(), selected=("physx",))
+    hydra_mod._setattr(cfg, f"scene.deformable.spawn.{slot}.1.self_collision", True)
+    omniphysics, physx = getattr(cfg.scene.deformable.spawn, slot)
+    assert isinstance(omniphysics, OmniPhysicsDeformableBodyCfg) and omniphysics.kinematic_enabled is False
+    assert isinstance(physx, PhysxDeformableBodyCfg) and physx.solver_position_iteration_count == 16
+    assert physx.self_collision is True
 
 
 def test_rigid_lift_motion_regularization_follows_success_driven_adr() -> None:

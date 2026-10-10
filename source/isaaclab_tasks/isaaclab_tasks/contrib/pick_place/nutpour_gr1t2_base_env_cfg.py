@@ -25,8 +25,6 @@ from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors import CameraCfg
-
-# from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
 from isaaclab.utils import configclass, replace
 from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR

@@ -12,6 +12,16 @@ from ..scene import InteractiveSceneCfg
 from ..utils import clone, configclass
 from ..utils.assets import ISAACLAB_NUCLEUS_DIR
 
+try:
+    from isaaclab_physx.sim.schemas import PhysxRigidBodyCfg
+except ImportError:  # keep this module importable without a physics backend extension
+    PhysxRigidBodyCfg = None
+
+# ``disable_gravity`` has no core fragment: its only USD home is ``physxRigidBody:disableGravity``.
+_FLOATING_RIGID_PROPS = (
+    PhysxRigidBodyCfg(disable_gravity=True) if PhysxRigidBodyCfg is not None else sim_utils.UsdPhysicsRigidBodyCfg()
+)
+
 _CARTPOLE_TEST_CFG = ArticulationCfg(
     prim_path="{ENV_REGEX_NS}/Robot",
     spawn=sim_utils.UsdFileCfg(
@@ -57,10 +67,7 @@ class ArticulationRigidObjectSceneCfg(CartpoleTestSceneCfg):
         prim_path="{ENV_REGEX_NS}/Object",
         spawn=sim_utils.CuboidCfg(
             size=(0.1, 0.1, 0.1),
-            # ``disable_gravity`` has no core fragment: its only USD home is
-            # ``physxRigidBody:disableGravity``, so it stays on the backend-neutral base cfg to
-            # keep this module importable without a physics backend extension.
-            rigid_props=sim_utils.RigidBodyBaseCfg(disable_gravity=True),
+            rigid_props=_FLOATING_RIGID_PROPS,
             mass_props=sim_utils.MassCfg(mass=1.0),
             collision_props=sim_utils.UsdPhysicsCollisionCfg(),
         ),

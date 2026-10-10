@@ -689,12 +689,23 @@ def register_task(
 
 
 def _setattr(obj, path: str, val):
-    """Set nested attribute/key (e.g., "actions.arm_action.scale")."""
+    """Set nested attribute/key (e.g., "actions.arm_action.scale").
+
+    A path segment addressing a list or tuple element is its integer index, e.g.
+    ``"scene.object.spawn.volume_deformable_props.1.self_collision"``.
+    """
     *parts, leaf = path.split(".")
     for p in parts:
-        obj = obj[p] if isinstance(obj, Mapping) else getattr(obj, p)
+        if isinstance(obj, Mapping):
+            obj = obj[p]
+        elif isinstance(obj, (list, tuple)):
+            obj = obj[int(p)]
+        else:
+            obj = getattr(obj, p)
     if isinstance(obj, dict):
         obj[leaf] = val
+    elif isinstance(obj, list):
+        obj[int(leaf)] = val
     else:
         setattr(obj, leaf, val)
 

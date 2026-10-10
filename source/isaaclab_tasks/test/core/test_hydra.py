@@ -1144,6 +1144,23 @@ def test_scalar_override_within_preset_path(class_presets):
     assert env_cfg.backend.substeps == 4
 
 
+def test_scalar_override_indexes_into_list_fields():
+    """Scalar override paths address list elements by integer index."""
+
+    @configclass
+    class ItemCfg:
+        value: int = 0
+
+    @configclass
+    class ListEnvCfg:
+        items: list = [ItemCfg(), ItemCfg()]
+        values: list = [1, 2]
+
+    env_cfg, _ = _apply(ListEnvCfg(), preset_scalar=[("env.items.1.value", "5"), ("env.values.0", "7")])
+    assert [item.value for item in env_cfg.items] == [0, 5]
+    assert env_cfg.values == [7, 2]
+
+
 def test_scalar_override_kamino_solver_config():
     """Concrete Kamino solver fields can be overridden through Hydra scalar paths."""
     from isaaclab_newton.physics import KaminoPADMMSolverCfg, NewtonCfg
