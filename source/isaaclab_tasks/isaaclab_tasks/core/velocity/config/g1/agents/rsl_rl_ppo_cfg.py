@@ -51,3 +51,12 @@ class G1FlatPPORunnerCfg(G1RoughPPORunnerCfg):
         self.experiment_name = "g1_flat"
         self.actor.hidden_dims = [256, 128, 128]
         self.critic.hidden_dims = [256, 128, 128]
+
+
+@configclass
+class G1FlatVBDPPORunnerCfg(G1FlatPPORunnerCfg):
+    """Train the VBD task in its own experiment directory."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.experiment_name = "g1_flat_vbd"

@@ -235,3 +235,44 @@ def test_vbd_rebuilds_particle_bvh_before_physics_step(monkeypatch):
     physics.NewtonVBDManager._simulate_physics_only()
 
     assert events == [("rebuild", state), ("step", physics.NewtonVBDManager)]
+
+
+def test_vbd_manager_contact_sensor_reports_support_force(monkeypatch):
+    """A supported sphere must report its weight through the manager's sensor path."""
+    import re
+
+    import numpy as np
+    from newton.sensors import SensorContact
+
+    builder = ModelBuilder()
+    body = builder.add_link(label="ball", xform=wp.transform(wp.vec3(0.0, 0.0, 0.1), wp.quat_identity()))
+    builder.add_shape_sphere(body=body, radius=0.1)
+    builder.add_ground_plane()
+    builder.color()
+    model = builder.finalize(device="cpu")
+    solver = SolverVBD(model, iterations=10)
+    state_0, state_1, control = model.state(), model.state(), model.control()
+    sensor = SensorContact(model, sensing_bodies=re.compile("ball"), measure_total=True)
+    backend = SimpleNamespace(model=model, state_0=state_0)
+    monkeypatch.setattr(NewtonManager, "backend", backend)
+    monkeypatch.setattr(NewtonManager, "_solver", solver)
+    monkeypatch.setattr(NewtonManager, "_needs_collision_pipeline", True)
+    monkeypatch.setattr(NewtonManager, "_collision_pipeline", None)
+    monkeypatch.setattr(NewtonManager, "_contacts", None)
+    monkeypatch.setattr(NewtonManager, "_collision_cfg", None)
+    monkeypatch.setattr(NewtonManager, "_report_contacts", True)
+    monkeypatch.setattr(NewtonManager, "_contact_observables", None)
+    monkeypatch.setattr(NewtonManager, "_newton_contact_sensors", {"ball": sensor})
+    monkeypatch.setattr(NewtonManager, "_newton_imu_sensors", [])
+    NewtonManager._initialize_contacts()
+    pipeline, contacts = NewtonManager._collision_pipeline, NewtonManager._contacts
+    for _ in range(240):
+        pipeline.collide(state_0, contacts)
+        state_0.clear_forces()
+        NewtonManager._step_solver(state_0, state_1, control, contacts, 0.004)
+        state_0, state_1 = state_1, state_0
+        backend.state_0 = state_0
+        NewtonManager._update_sensors(contacts)
+    force = sensor.total_force.numpy()[0]
+    assert np.isfinite(force).all()
+    assert force[2] == pytest.approx(float(model.body_mass.numpy()[body]) * 9.81, rel=0.1)

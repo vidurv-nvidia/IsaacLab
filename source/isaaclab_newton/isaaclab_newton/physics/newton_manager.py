@@ -37,7 +37,7 @@ from newton.selection import ArticulationView
 from newton.sensors import SensorContact as NewtonContactSensor
 from newton.sensors import SensorFrameTransform
 from newton.sensors import SensorIMU as NewtonSensorIMU
-from newton.solvers import SolverBase, SolverMuJoCo
+from newton.solvers import SolverBase, SolverMuJoCo, SolverObservableFlags, SolverObservables, SolverVBD
 from newton.usd import SchemaResolver, SchemaResolverMjc, SchemaResolverNewton, SchemaResolverPhysx
 
 from pxr import Usd, UsdGeom
@@ -483,6 +483,7 @@ class NewtonManager(PhysicsManager):
 
     # Collision and contacts
     _contacts: Contacts | None = None
+    _contact_observables: SolverObservables | None = None
     _needs_collision_pipeline: bool = False
     _collision_pipeline = None
     _collision_cfg: NewtonCollisionPipelineCfg | None = None
@@ -623,6 +624,7 @@ class NewtonManager(PhysicsManager):
             NewtonManager._graph_capture_pending = False
             NewtonManager._collision_pipeline = None
             NewtonManager._contacts = None
+            NewtonManager._contact_observables = None
             NewtonManager._solver = None
             NewtonManager._eval_fk = _eval_fk_unbound
             NewtonManager._reset_solver_internals_delegate = _reset_solver_internals_unbound
@@ -830,6 +832,7 @@ class NewtonManager(PhysicsManager):
         NewtonManager._use_single_state = None
         NewtonManager._supports_rigid_body_force_input = False
         NewtonManager._contacts = None
+        NewtonManager._contact_observables = None
         NewtonManager._needs_collision_pipeline = False
         NewtonManager._ignored_model_changes = {}
         NewtonManager._warned_model_changes = set()
@@ -1379,6 +1382,8 @@ class NewtonManager(PhysicsManager):
         pipeline_args["deterministic"] = cls._deterministic_mode != wp.DeterministicMode.NOT_GUARANTEED
         if cls._collision_pipeline is None:
             NewtonManager._collision_pipeline = CollisionPipeline(cls.backend.model, **pipeline_args)
+        if isinstance(cls._solver, SolverVBD) and cls._report_contacts and cls._contact_observables is None:
+            NewtonManager._contact_observables = cls._solver.observables({SolverObservableFlags.CONTACT_F})
         if cls._contacts is None:
             NewtonManager._contacts = cls._collision_pipeline.contacts()
             # Grow the collision-pipeline contact buffer to the solver's max when the
@@ -1554,7 +1559,10 @@ class NewtonManager(PhysicsManager):
         Default invokes :attr:`_solver` once.  Subclasses can override to
         batch multiple solvers within a single substep.
         """
-        cls._solver.step(state_0, state_1, control, contacts, substep_dt)
+        if cls._contact_observables is None:
+            cls._solver.step(state_0, state_1, control, contacts, substep_dt)
+        else:
+            cls._solver.step(state_0, state_1, control, contacts, substep_dt, observables=cls._contact_observables)
 
     @classmethod
     def _solver_specific_clear(cls) -> None:
@@ -1753,9 +1761,13 @@ class NewtonManager(PhysicsManager):
             sensor.update(cls.backend.state_0)
         if cls._report_contacts:
             eval_contacts = contacts if contacts is not None else cls._contacts
-            cls._solver.update_contacts(eval_contacts, cls.backend.state_0)
+            if cls._contact_observables is None:
+                cls._solver.update_contacts(eval_contacts, cls.backend.state_0)
             for sensor in cls._newton_contact_sensors.values():
-                sensor.update(cls.backend.state_0, eval_contacts)
+                if cls._contact_observables is None:
+                    sensor.update(cls.backend.state_0, eval_contacts)
+                else:
+                    sensor.update(cls.backend.state_0, eval_contacts, observables=cls._contact_observables)
 
     # ------------------------------------------------------------------
     # Composite stepping routines
