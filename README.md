@@ -30,12 +30,6 @@ Moreover, Isaac Lab can run locally or be distributed across the cloud, offering
 
 A detailed description of Isaac Lab can be found in our [arXiv paper](https://arxiv.org/abs/2511.04831).
 
-## G1 VBD preview
-
-This branch includes the separate **Isaac-Velocity-Flat-G1-VBD** environment.
-See the [G1 VBD guide](docs/g1_vbd.md) for installation, training, playback,
-solver settings and validation scope.
-
 ## Key Features
 
 Isaac Lab offers a comprehensive set of tools and environments designed to facilitate robot learning:
